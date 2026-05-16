@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle2, CloudOff, RefreshCw } from "lucide-react";
+import { useAuthStore } from "@/stores/authStore";
 import { useNetworkStore } from "@/stores/networkStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 import { cn } from "@/lib/utils";
@@ -11,8 +12,10 @@ export function SyncStatusBadge({ className }: SyncStatusBadgeProps) {
   const isOnline = useNetworkStore((state) => state.isOnline);
   const pendingSyncCount = useTransactionStore((state) => state.pendingSyncCount);
   const failedSyncCount = useTransactionStore((state) => state.failedSyncCount);
+  const isSyncing = useTransactionStore((state) => state.isSyncing);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  const state = getBadgeState({ isOnline, pendingSyncCount, failedSyncCount });
+  const state = getBadgeState({ failedSyncCount, isAuthenticated, isOnline, isSyncing, pendingSyncCount });
   const Icon = state.icon;
 
   return (
@@ -32,13 +35,33 @@ export function SyncStatusBadge({ className }: SyncStatusBadgeProps) {
 
 function getBadgeState({
   isOnline,
+  isAuthenticated,
+  isSyncing,
   pendingSyncCount,
   failedSyncCount,
 }: {
   isOnline: boolean;
+  isAuthenticated: boolean;
+  isSyncing: boolean;
   pendingSyncCount: number;
   failedSyncCount: number;
 }) {
+  if (!isAuthenticated) {
+    return {
+      label: "Datos guardados solo en este dispositivo",
+      icon: CloudOff,
+      className: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+    };
+  }
+
+  if (isSyncing) {
+    return {
+      label: "Sincronizando...",
+      icon: RefreshCw,
+      className: "bg-lime-50 text-lime-800 ring-1 ring-lime-100",
+    };
+  }
+
   if (failedSyncCount > 0) {
     return {
       label: "Error de sincronización",
@@ -57,7 +80,7 @@ function getBadgeState({
 
   if (pendingSyncCount > 0) {
     return {
-      label: `Pendiente de sincronizar: ${pendingSyncCount}`,
+      label: `${pendingSyncCount} pendientes`,
       icon: RefreshCw,
       className: "bg-lime-50 text-lime-800 ring-1 ring-lime-100",
     };

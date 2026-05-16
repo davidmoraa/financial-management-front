@@ -2,7 +2,7 @@ import Dexie, { type Table } from "dexie";
 import type { Category, SyncQueueItem, Transaction } from "@/types/finance";
 import { initialCategories } from "@/stores/categoryStore";
 
-export type FinanceSettingKey = "monthlyBudget" | "currency" | "initialSeedComplete";
+export type FinanceSettingKey = "monthlyBudget" | "currency" | "initialSeedComplete" | "deviceId" | "lastPulledAt";
 
 export type FinanceSetting = {
   key: FinanceSettingKey;
@@ -81,6 +81,34 @@ export async function ensureOfflineDatabaseReady() {
 export async function getMonthlyBudgetSetting() {
   const setting = await financeDb.settings.get("monthlyBudget");
   return typeof setting?.value === "number" ? setting.value : 15000;
+}
+
+export async function getOrCreateDeviceId() {
+  const setting = await financeDb.settings.get("deviceId");
+  if (typeof setting?.value === "string") {
+    return setting.value;
+  }
+
+  const deviceId = crypto.randomUUID();
+  await financeDb.settings.put({
+    key: "deviceId",
+    value: deviceId,
+    updatedAt: nowIso(),
+  });
+  return deviceId;
+}
+
+export async function getLastPulledAt() {
+  const setting = await financeDb.settings.get("lastPulledAt");
+  return typeof setting?.value === "string" ? setting.value : undefined;
+}
+
+export async function setLastPulledAt(value: string) {
+  await financeDb.settings.put({
+    key: "lastPulledAt",
+    value,
+    updatedAt: nowIso(),
+  });
 }
 
 export async function resetOfflineDatabaseForTests() {

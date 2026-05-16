@@ -138,6 +138,19 @@ export async function markTransactionSyncStatus(id: string, syncStatus: Transact
   });
 }
 
+export async function mergeRemoteTransaction(remote: Omit<Transaction, "syncStatus">) {
+  const local: Transaction = {
+    ...remote,
+    syncStatus: "synced",
+  };
+  await financeDb.transactions.put(local);
+  return local;
+}
+
+export async function markTransactionConflict(id: string) {
+  await markTransactionSyncStatus(id, "conflict");
+}
+
 function sortTransactionsDesc(transactions: Transaction[]) {
   return transactions.sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime());
 }

@@ -34,3 +34,23 @@ Required fields:
 
 **Verification:**
 - No remote database exists for this project phase.
+
+## [2026-05-16] API sync foundation
+
+**Environment:**
+- Frontend repo plus sibling API repo
+
+**Reason:**
+- Prepare Node.js API and migration for future PostgreSQL sync.
+
+**SQL executed:**
+
+```sql
+-- None executed against a live database in this work session.
+```
+
+**Source migration prepared:**
+
+```txt
+../financial-management-api/src/db/migrations/001_initial_schema.sql
+```

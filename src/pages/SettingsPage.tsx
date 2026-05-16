@@ -1,12 +1,27 @@
-import { Bell, CircleDollarSign, DatabaseZap, Wallet } from "lucide-react";
+import { Bell, CircleDollarSign, DatabaseZap, LogOut, RefreshCw, Wallet } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
+import { Button } from "@/components/ui/button";
+import { syncPendingItems } from "@/lib/offline/syncEngine";
+import { useAuthStore } from "@/stores/authStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 import { formatCurrency } from "@/lib/formatters";
 
 export function SettingsPage() {
   const monthlyBudget = useTransactionStore((state) => state.monthlyBudget);
+  const pendingSyncCount = useTransactionStore((state) => state.pendingSyncCount);
+  const isSyncing = useTransactionStore((state) => state.isSyncing);
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const logout = useAuthStore((state) => state.logout);
+
+  const handleLogout = () => {
+    if (pendingSyncCount > 0 && !window.confirm("Tienes movimientos pendientes de sincronizar. ¿Cerrar sesión de todos modos?")) {
+      return;
+    }
+    logout();
+  };
 
   return (
     <div className="grid gap-5 lg:grid-cols-3">
@@ -26,6 +41,7 @@ export function SettingsPage() {
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <SettingRow icon={CircleDollarSign} label="Presupuesto mensual" value={formatCurrency(monthlyBudget)} />
           <SettingRow icon={CircleDollarSign} label="Moneda" value="MXN" />
+          <SettingRow icon={Wallet} label="Sesión" value={isAuthenticated ? user?.email ?? "Activa" : "Sin sesión"} />
         </div>
       </Card>
 
@@ -40,6 +56,16 @@ export function SettingsPage() {
         <div className="mt-4 flex flex-wrap gap-2">
           <Badge tone="warning">Offline-first</Badge>
           <SyncStatusBadge />
+        </div>
+        <div className="mt-5 grid gap-2">
+          <Button variant="secondary" onClick={() => void syncPendingItems()} disabled={!isAuthenticated || isSyncing}>
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            Sincronizar ahora
+          </Button>
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            Cerrar sesión
+          </Button>
         </div>
       </Card>
 

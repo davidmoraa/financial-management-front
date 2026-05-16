@@ -20,8 +20,10 @@ type TransactionState = {
   monthlyBudget: number;
   isHydrated: boolean;
   isHydrating: boolean;
+  isSyncing: boolean;
   pendingSyncCount: number;
   failedSyncCount: number;
+  setIsSyncing: (isSyncing: boolean) => void;
   hydrate: () => Promise<void>;
   refreshTransactions: () => Promise<void>;
   refreshSyncCounts: () => Promise<void>;
@@ -64,8 +66,10 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   monthlyBudget: 15000,
   isHydrated: false,
   isHydrating: false,
+  isSyncing: false,
   pendingSyncCount: 0,
   failedSyncCount: 0,
+  setIsSyncing: (isSyncing) => set({ isSyncing }),
   hydrate: async () => {
     if (get().isHydrating) {
       return;

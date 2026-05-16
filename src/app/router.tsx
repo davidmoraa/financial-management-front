@@ -1,24 +1,36 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import type { ReactNode } from "react";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { AppShell } from "@/components/layout/AppShell";
 import { CategoriesPage } from "@/pages/CategoriesPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { NewTransactionPage } from "@/pages/NewTransactionPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { LoginPage } from "@/pages/LoginPage";
+import { RegisterPage } from "@/pages/RegisterPage";
+
+function ProtectedPage({ children }: { children: ReactNode }) {
+  return (
+    <AuthGuard>
+      <AppShell>{children}</AppShell>
+    </AuthGuard>
+  );
+}
 
 export function AppRouter() {
   return (
     <BrowserRouter>
-      <AppShell>
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/new" element={<NewTransactionPage />} />
-          <Route path="/history" element={<HistoryPage />} />
-          <Route path="/categories" element={<CategoriesPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AppShell>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/" element={<ProtectedPage><DashboardPage /></ProtectedPage>} />
+        <Route path="/new" element={<ProtectedPage><NewTransactionPage /></ProtectedPage>} />
+        <Route path="/history" element={<ProtectedPage><HistoryPage /></ProtectedPage>} />
+        <Route path="/categories" element={<ProtectedPage><CategoriesPage /></ProtectedPage>} />
+        <Route path="/settings" element={<ProtectedPage><SettingsPage /></ProtectedPage>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 }

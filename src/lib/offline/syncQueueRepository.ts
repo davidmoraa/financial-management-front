@@ -65,6 +65,15 @@ export async function getFailedCount() {
   return financeDb.syncQueue.where("status").equals("failed").count();
 }
 
+export async function hasPendingSyncForEntity(entityId: string) {
+  const count = await financeDb.syncQueue
+    .where("entityId")
+    .equals(entityId)
+    .filter((item) => item.status === "pending" || item.status === "processing" || item.status === "failed")
+    .count();
+  return count > 0;
+}
+
 async function updateSyncItemStatus(id: string, status: SyncQueueStatus) {
   await financeDb.syncQueue.update(id, {
     status,

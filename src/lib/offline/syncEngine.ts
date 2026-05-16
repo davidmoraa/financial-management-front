@@ -1,5 +1,15 @@
-import { getPendingSyncItems, markSyncItemDone, markSyncItemFailed, markSyncItemProcessing } from "@/lib/offline/syncQueueRepository";
-import { markTransactionSyncStatus } from "@/lib/offline/transactionRepository";
+import { getLastPulledAt, getOrCreateDeviceId, setLastPulledAt } from "@/lib/offline/db";
+import {
+  getPendingSyncItems,
+  hasPendingSyncForEntity,
+  markSyncItemDone,
+  markSyncItemFailed,
+  markSyncItemProcessing,
+} from "@/lib/offline/syncQueueRepository";
+import { markTransactionConflict, markTransactionSyncStatus, mergeRemoteTransaction } from "@/lib/offline/transactionRepository";
+import { pullRemoteChanges, pushSyncOperations } from "@/lib/remote/syncApi";
+import { useAuthStore } from "@/stores/authStore";
+import { useTransactionStore } from "@/stores/transactionStore";
 import type { SyncQueueItem } from "@/types/finance";
 
 let isSyncing = false;
@@ -13,46 +23,76 @@ export async function syncPendingItems() {
     return { processed: 0 };
   }
 
+  if (!useAuthStore.getState().token) {
+    return { processed: 0 };
+  }
+
   isSyncing = true;
-  let processed = 0;
+  useTransactionStore.getState().setIsSyncing(true);
+  const items = await getPendingSyncItems();
 
   try {
-    const items = await getPendingSyncItems();
-
     for (const item of items) {
-      try {
-        await markSyncItemProcessing(item.id);
-        await processSyncItem(item);
-        await markSyncItemDone(item.id);
-        processed += 1;
-      } catch (error) {
-        if (item.entity === "transaction") {
-          await markTransactionSyncStatus(item.entityId, "failed");
-        }
-        await markSyncItemFailed(item.id, error);
+      await markSyncItemProcessing(item.id);
+      if (item.entity === "transaction") {
+        await markTransactionSyncStatus(item.entityId, "syncing");
       }
     }
 
-    return { processed };
+    if (items.length > 0) {
+      const deviceId = await getOrCreateDeviceId();
+      const pushResult = await pushSyncOperations({ deviceId, operations: items });
+
+      for (const accepted of pushResult.accepted) {
+        await markSyncItemDone(accepted.operationId);
+        await markTransactionSyncStatus(accepted.entityId, "synced", pushResult.serverTime);
+      }
+
+      for (const failed of pushResult.failed) {
+        await markSyncItemFailed(failed.operationId, failed.message);
+        await markTransactionSyncStatus(failed.entityId, "failed");
+      }
+
+      for (const conflict of pushResult.conflicts) {
+        await markSyncItemFailed(conflict.operationId, "Conflict reported by server");
+        await markTransactionConflict(conflict.entityId);
+      }
+    }
+
+    const pullResult = await pullRemoteChanges(await getLastPulledAt());
+
+    for (const remoteTransaction of pullResult.transactions) {
+      const hasLocalPending = await hasPendingSyncForEntity(remoteTransaction.id);
+      if (hasLocalPending) {
+        await markTransactionConflict(remoteTransaction.id);
+      } else {
+        await mergeRemoteTransaction(remoteTransaction);
+      }
+    }
+
+    await setLastPulledAt(pullResult.serverTime);
+    await useTransactionStore.getState().refreshTransactions();
+
+    return { processed: items.length };
+  } catch (error) {
+    for (const item of items) {
+      if (item.entity === "transaction") {
+        await markTransactionSyncStatus(item.entityId, "failed");
+      }
+      await markSyncItemFailed(item.id, error);
+    }
+    await useTransactionStore.getState().refreshTransactions();
+    return { processed: 0 };
   } finally {
     isSyncing = false;
+    useTransactionStore.getState().setIsSyncing(false);
   }
 }
 
 export async function processSyncItem(item: SyncQueueItem) {
-  if (!canSync()) {
-    throw new Error("No network connection available");
-  }
-
   if (item.entity !== "transaction") {
     throw new Error(`Unsupported sync entity: ${item.entity}`);
   }
 
-  await markTransactionSyncStatus(item.entityId, "syncing");
-
-  // Placeholder for the next phase:
-  // - create/update/delete will call Supabase or an API endpoint here
-  // - local data stays intact even when remote sync fails
-  // - serverUpdatedAt should be replaced with the remote timestamp
-  await markTransactionSyncStatus(item.entityId, "synced", new Date().toISOString());
+  return syncPendingItems();
 }

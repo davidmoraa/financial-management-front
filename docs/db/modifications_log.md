@@ -52,3 +52,34 @@ This document tracks all changes made to database schema or persistence behavior
 - `src/lib/offline/syncQueueRepository.ts`
 - `src/lib/offline/syncEngine.ts`
 - `src/stores/transactionStore.ts`
+
+## [2026-05-16] API Sync Foundation
+
+**Status:**
+- Frontend does not execute SQL
+- Frontend does not connect directly to PostgreSQL or Supabase
+- Initial remote schema is prepared in sibling API repo
+
+**API repo:**
+
+```txt
+../financial-management-api
+```
+
+**Migration source:**
+
+```txt
+../financial-management-api/src/db/migrations/001_initial_schema.sql
+```
+
+**Frontend schema impact:**
+- None
+
+**Remote schema impact:**
+- See API repo docs:
+  - `../financial-management-api/docs/db/schema.md`
+  - `../financial-management-api/docs/db/modifications_log.md`
+  - `../financial-management-api/docs/db/procedures_log.md`
+
+**Procedures executed:**
+- None against a live database in this work session
