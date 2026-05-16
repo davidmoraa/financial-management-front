@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { CategoriesPage } from "@/pages/CategoriesPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { HistoryPage } from "@/pages/HistoryPage";
+import { FixedExpensesPage } from "@/pages/FixedExpensesPage";
 import { NewTransactionPage } from "@/pages/NewTransactionPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -27,6 +28,7 @@ export function AppRouter() {
         <Route path="/" element={<ProtectedPage><DashboardPage /></ProtectedPage>} />
         <Route path="/new" element={<ProtectedPage><NewTransactionPage /></ProtectedPage>} />
         <Route path="/history" element={<ProtectedPage><HistoryPage /></ProtectedPage>} />
+        <Route path="/fixed-expenses" element={<ProtectedPage><FixedExpensesPage /></ProtectedPage>} />
         <Route path="/categories" element={<ProtectedPage><CategoriesPage /></ProtectedPage>} />
         <Route path="/settings" element={<ProtectedPage><SettingsPage /></ProtectedPage>} />
         <Route path="*" element={<Navigate to="/" replace />} />

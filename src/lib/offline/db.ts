@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import type { Category, SyncQueueItem, Transaction } from "@/types/finance";
+import type { FixedExpense, FixedExpenseOccurrence } from "@/types/fixedExpenses";
 import { initialCategories } from "@/stores/categoryStore";
 
 export type FinanceSettingKey = "monthlyBudget" | "currency" | "initialSeedComplete" | "deviceId" | "lastPulledAt";
@@ -12,6 +13,8 @@ export type FinanceSetting = {
 
 export class FinanceDatabase extends Dexie {
   transactions!: Table<Transaction, string>;
+  fixedExpenses!: Table<FixedExpense, string>;
+  fixedExpenseOccurrences!: Table<FixedExpenseOccurrence, string>;
   categories!: Table<Category, string>;
   settings!: Table<FinanceSetting, FinanceSettingKey>;
   syncQueue!: Table<SyncQueueItem, string>;
@@ -25,6 +28,15 @@ export class FinanceDatabase extends Dexie {
       settings: "&key",
       syncQueue: "&id, entity, entityId, operation, status, createdAt, updatedAt",
     });
+
+    this.version(2).stores({
+      transactions: "&id, type, categoryId, transactionDate, fixedExpenseId, fixedExpenseOccurrenceId, syncStatus, deletedAt, updatedAt",
+      fixedExpenses: "&id, name, categoryId, isActive, syncStatus, deletedAt, updatedAt",
+      fixedExpenseOccurrences: "&id, fixedExpenseId, occurrenceMonth, status, transactionId, syncStatus, deletedAt, updatedAt",
+      categories: "&id, type, name",
+      settings: "&key",
+      syncQueue: "&id, entity, entityId, operation, status, createdAt, updatedAt",
+    });
   }
 }
 
@@ -33,6 +45,8 @@ export const financeDb = new FinanceDatabase();
 const nowIso = () => new Date().toISOString();
 
 export async function ensureOfflineDatabaseReady() {
+  await ensureInitialFixedExpenses();
+
   const seedComplete = await financeDb.settings.get("initialSeedComplete");
 
   if (seedComplete?.value === true) {
@@ -76,6 +90,16 @@ export async function ensureOfflineDatabaseReady() {
       updatedAt: timestamp,
     });
   });
+}
+
+async function ensureInitialFixedExpenses() {
+  const fixedExpenseCount = await financeDb.fixedExpenses.count();
+  if (fixedExpenseCount > 0) {
+    return;
+  }
+
+  const timestamp = nowIso();
+  await financeDb.fixedExpenses.bulkPut(createInitialFixedExpenses(timestamp));
 }
 
 export async function getMonthlyBudgetSetting() {
@@ -203,6 +227,75 @@ function createInitialTransactions(timestamp: string): Transaction[] {
       serverUpdatedAt: timestamp,
       createdAt: isoDaysAgo(1),
       updatedAt: isoDaysAgo(1),
+    },
+  ];
+}
+
+function createInitialFixedExpenses(timestamp: string): FixedExpense[] {
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  const activeFromMonth = monthStart.toISOString().slice(0, 10);
+
+  return [
+    {
+      id: "seed-fixed-001",
+      name: "Renta",
+      amount: 8500,
+      categoryId: "home",
+      categoryName: "Casa",
+      paymentMethod: "transfer",
+      recurrence: "monthly",
+      paymentWindowStartDay: 1,
+      paymentWindowEndDay: 5,
+      activeFromMonth,
+      includeInForecast: true,
+      isActive: true,
+      syncStatus: "synced",
+      clientCreatedAt: timestamp,
+      clientUpdatedAt: timestamp,
+      serverUpdatedAt: timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+    {
+      id: "seed-fixed-002",
+      name: "Internet",
+      amount: 599,
+      categoryId: "home",
+      categoryName: "Casa",
+      paymentMethod: "debit_card",
+      recurrence: "monthly",
+      paymentWindowStartDay: 10,
+      paymentWindowEndDay: 15,
+      activeFromMonth,
+      includeInForecast: true,
+      isActive: true,
+      syncStatus: "synced",
+      clientCreatedAt: timestamp,
+      clientUpdatedAt: timestamp,
+      serverUpdatedAt: timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+    {
+      id: "seed-fixed-003",
+      name: "Streaming",
+      amount: 249,
+      categoryId: "subscriptions",
+      categoryName: "Suscripciones",
+      paymentMethod: "credit_card",
+      recurrence: "monthly",
+      paymentWindowStartDay: 20,
+      paymentWindowEndDay: 22,
+      activeFromMonth,
+      includeInForecast: true,
+      isActive: true,
+      syncStatus: "synced",
+      clientCreatedAt: timestamp,
+      clientUpdatedAt: timestamp,
+      serverUpdatedAt: timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp,
     },
   ];
 }

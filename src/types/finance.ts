@@ -26,6 +26,8 @@ export type Transaction = {
   paymentMethod: PaymentMethod;
   transactionDate: string;
   note?: string;
+  fixedExpenseId?: string;
+  fixedExpenseOccurrenceId?: string;
   syncStatus: SyncStatus;
   clientCreatedAt: string;
   clientUpdatedAt: string;
@@ -43,7 +45,7 @@ export type MonthlySummary = {
   budgetUsedPercentage: number;
 };
 
-export type SyncQueueEntity = "transaction";
+export type SyncQueueEntity = "transaction" | "fixed_expense" | "fixed_expense_occurrence";
 
 export type SyncQueueOperation = "create" | "update" | "delete";
 

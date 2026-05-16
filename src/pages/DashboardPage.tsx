@@ -2,22 +2,41 @@ import { Link } from "react-router-dom";
 import { useMemo } from "react";
 import { ArrowRight, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { BalanceOverviewCard } from "@/components/dashboard/BalanceOverviewCard";
+import { BudgetForecastCard } from "@/components/dashboard/BudgetForecastCard";
+import { BudgetWarningsCard } from "@/components/dashboard/BudgetWarningsCard";
+import { FixedExpensesThisMonth } from "@/components/dashboard/FixedExpensesThisMonth";
 import { MonthlyMetricCard } from "@/components/dashboard/MonthlyMetricCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { SpendingProgressCard } from "@/components/dashboard/SpendingProgressCard";
 import { Button } from "@/components/ui/button";
+import { getMonthlyForecast } from "@/lib/finance/forecastEngine";
+import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 import { formatShortDate } from "@/lib/formatters";
 
 export function DashboardPage() {
   const currentDate = useMemo(() => new Date(), []);
   const transactions = useTransactionStore((state) => state.transactions);
+  const monthlyBudget = useTransactionStore((state) => state.monthlyBudget);
+  const fixedExpenses = useFixedExpenseStore((state) => state.fixedExpenses);
+  const occurrences = useFixedExpenseStore((state) => state.occurrences);
   const isHydrated = useTransactionStore((state) => state.isHydrated);
   const getMonthlySummary = useTransactionStore((state) => state.getMonthlySummary);
   const getRecentTransactions = useTransactionStore((state) => state.getRecentTransactions);
 
   const summary = useMemo(() => getMonthlySummary(currentDate), [currentDate, getMonthlySummary, transactions]);
   const recentTransactions = useMemo(() => getRecentTransactions(5), [getRecentTransactions, transactions]);
+  const forecast = useMemo(
+    () =>
+      getMonthlyForecast({
+        transactions,
+        fixedExpenses,
+        fixedExpenseOccurrences: occurrences,
+        monthlyBudget,
+        targetMonth: currentDate,
+      }),
+    [currentDate, fixedExpenses, monthlyBudget, occurrences, transactions],
+  );
 
   return (
     <div className="space-y-6">
@@ -51,6 +70,14 @@ export function DashboardPage() {
       <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
         <SpendingProgressCard expense={summary.expense} budget={summary.budget} percentage={summary.budgetUsedPercentage} />
         <RecentTransactions transactions={recentTransactions} />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <BudgetForecastCard monthlyBudget={monthlyBudget} forecast={forecast} />
+        <div className="grid gap-4">
+          <BudgetWarningsCard warnings={forecast.warnings} />
+          <FixedExpensesThisMonth forecast={forecast} />
+        </div>
       </section>
 
       <Link

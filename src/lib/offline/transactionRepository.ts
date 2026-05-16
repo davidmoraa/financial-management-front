@@ -4,6 +4,7 @@ import { enqueueSyncItem } from "@/lib/offline/syncQueueRepository";
 import type { PaymentMethod, Transaction, TransactionType } from "@/types/finance";
 
 export type TransactionMutationInput = {
+  id?: string;
   type: TransactionType;
   amount: number;
   categoryId: string;
@@ -11,6 +12,8 @@ export type TransactionMutationInput = {
   paymentMethod: PaymentMethod;
   transactionDate: string;
   note?: string;
+  fixedExpenseId?: string;
+  fixedExpenseOccurrenceId?: string;
 };
 
 const nowIso = () => new Date().toISOString();
@@ -29,7 +32,7 @@ export async function getTransactionById(id: string) {
 export async function createTransaction(input: TransactionMutationInput) {
   const timestamp = nowIso();
   const transaction: Transaction = {
-    id: crypto.randomUUID(),
+    id: input.id ?? crypto.randomUUID(),
     type: input.type,
     amount: input.amount,
     categoryId: input.categoryId,
@@ -37,6 +40,8 @@ export async function createTransaction(input: TransactionMutationInput) {
     paymentMethod: input.paymentMethod,
     transactionDate: input.transactionDate,
     note: input.note?.trim() || undefined,
+    fixedExpenseId: input.fixedExpenseId,
+    fixedExpenseOccurrenceId: input.fixedExpenseOccurrenceId,
     syncStatus: "pending",
     clientCreatedAt: timestamp,
     clientUpdatedAt: timestamp,
@@ -73,6 +78,8 @@ export async function updateTransaction(id: string, input: TransactionMutationIn
     paymentMethod: input.paymentMethod,
     transactionDate: input.transactionDate,
     note: input.note?.trim() || undefined,
+    fixedExpenseId: input.fixedExpenseId,
+    fixedExpenseOccurrenceId: input.fixedExpenseOccurrenceId,
     syncStatus: "pending",
     clientUpdatedAt: timestamp,
     updatedAt: timestamp,

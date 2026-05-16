@@ -2,7 +2,7 @@
 
 ## Status
 
-No remote database schema is connected yet.
+Remote PostgreSQL schema is owned by the sibling API repo. The frontend does not execute SQL and does not connect directly to PostgreSQL or Supabase.
 
 ## Current persistence
 
@@ -18,9 +18,17 @@ Local tables:
 
 ```txt
 transactions
+fixedExpenses
+fixedExpenseOccurrences
 categories
 settings
 syncQueue
+```
+
+Remote schema reference:
+
+```txt
+../financial-management-api/docs/db/schema.md
 ```
 
 ## Do not drift

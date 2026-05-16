@@ -1,4 +1,5 @@
-import { Bell, CircleDollarSign, DatabaseZap, LogOut, RefreshCw, Wallet } from "lucide-react";
+import { Bell, CalendarClock, CircleDollarSign, DatabaseZap, LogOut, RefreshCw, Wallet } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
@@ -58,6 +59,12 @@ export function SettingsPage() {
           <SyncStatusBadge />
         </div>
         <div className="mt-5 grid gap-2">
+          <Button asChild variant="secondary">
+            <Link to="/fixed-expenses">
+              <CalendarClock className="h-4 w-4" aria-hidden="true" />
+              Gastos fijos
+            </Link>
+          </Button>
           <Button variant="secondary" onClick={() => void syncPendingItems()} disabled={!isAuthenticated || isSyncing}>
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Sincronizar ahora

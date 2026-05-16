@@ -6,9 +6,20 @@ import {
   markSyncItemFailed,
   markSyncItemProcessing,
 } from "@/lib/offline/syncQueueRepository";
+import {
+  markFixedExpenseConflict,
+  markFixedExpenseSyncStatus,
+  mergeRemoteFixedExpense,
+} from "@/lib/offline/fixedExpenseRepository";
+import {
+  markFixedExpenseOccurrenceConflict,
+  markFixedExpenseOccurrenceSyncStatus,
+  mergeRemoteFixedExpenseOccurrence,
+} from "@/lib/offline/fixedExpenseOccurrenceRepository";
 import { markTransactionConflict, markTransactionSyncStatus, mergeRemoteTransaction } from "@/lib/offline/transactionRepository";
 import { pullRemoteChanges, pushSyncOperations } from "@/lib/remote/syncApi";
 import { useAuthStore } from "@/stores/authStore";
+import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 import type { SyncQueueItem } from "@/types/finance";
 
@@ -34,9 +45,7 @@ export async function syncPendingItems() {
   try {
     for (const item of items) {
       await markSyncItemProcessing(item.id);
-      if (item.entity === "transaction") {
-        await markTransactionSyncStatus(item.entityId, "syncing");
-      }
+      await markEntitySyncStatus(item, "syncing");
     }
 
     if (items.length > 0) {
@@ -45,17 +54,26 @@ export async function syncPendingItems() {
 
       for (const accepted of pushResult.accepted) {
         await markSyncItemDone(accepted.operationId);
-        await markTransactionSyncStatus(accepted.entityId, "synced", pushResult.serverTime);
+        const item = items.find((candidate) => candidate.id === accepted.operationId);
+        if (item) {
+          await markEntitySyncStatus(item, "synced", pushResult.serverTime);
+        }
       }
 
       for (const failed of pushResult.failed) {
         await markSyncItemFailed(failed.operationId, failed.message);
-        await markTransactionSyncStatus(failed.entityId, "failed");
+        const item = items.find((candidate) => candidate.id === failed.operationId);
+        if (item) {
+          await markEntitySyncStatus(item, "failed");
+        }
       }
 
       for (const conflict of pushResult.conflicts) {
         await markSyncItemFailed(conflict.operationId, "Conflict reported by server");
-        await markTransactionConflict(conflict.entityId);
+        const item = items.find((candidate) => candidate.id === conflict.operationId);
+        if (item) {
+          await markEntityConflict(item);
+        }
       }
     }
 
@@ -70,18 +88,40 @@ export async function syncPendingItems() {
       }
     }
 
+    for (const remoteFixedExpense of pullResult.fixedExpenses ?? []) {
+      const hasLocalPending = await hasPendingSyncForEntity(remoteFixedExpense.id);
+      if (hasLocalPending) {
+        await markFixedExpenseConflict(remoteFixedExpense.id);
+      } else {
+        await mergeRemoteFixedExpense(remoteFixedExpense);
+      }
+    }
+
+    for (const remoteOccurrence of pullResult.fixedExpenseOccurrences ?? []) {
+      const hasLocalPending = await hasPendingSyncForEntity(remoteOccurrence.id);
+      if (hasLocalPending) {
+        await markFixedExpenseOccurrenceConflict(remoteOccurrence.id);
+      } else {
+        await mergeRemoteFixedExpenseOccurrence(remoteOccurrence);
+      }
+    }
+
     await setLastPulledAt(pullResult.serverTime);
-    await useTransactionStore.getState().refreshTransactions();
+    await Promise.all([
+      useTransactionStore.getState().refreshTransactions(),
+      useFixedExpenseStore.getState().refreshAll(),
+    ]);
 
     return { processed: items.length };
   } catch (error) {
     for (const item of items) {
-      if (item.entity === "transaction") {
-        await markTransactionSyncStatus(item.entityId, "failed");
-      }
+      await markEntitySyncStatus(item, "failed");
       await markSyncItemFailed(item.id, error);
     }
-    await useTransactionStore.getState().refreshTransactions();
+    await Promise.all([
+      useTransactionStore.getState().refreshTransactions(),
+      useFixedExpenseStore.getState().refreshAll(),
+    ]);
     return { processed: 0 };
   } finally {
     isSyncing = false;
@@ -90,9 +130,33 @@ export async function syncPendingItems() {
 }
 
 export async function processSyncItem(item: SyncQueueItem) {
-  if (item.entity !== "transaction") {
-    throw new Error(`Unsupported sync entity: ${item.entity}`);
+  return syncPendingItems();
+}
+
+async function markEntitySyncStatus(item: SyncQueueItem, status: "synced" | "syncing" | "failed", serverUpdatedAt?: string) {
+  if (item.entity === "fixed_expense") {
+    await markFixedExpenseSyncStatus(item.entityId, status, serverUpdatedAt);
+    return;
   }
 
-  return syncPendingItems();
+  if (item.entity === "fixed_expense_occurrence") {
+    await markFixedExpenseOccurrenceSyncStatus(item.entityId, status, serverUpdatedAt);
+    return;
+  }
+
+  await markTransactionSyncStatus(item.entityId, status, serverUpdatedAt);
+}
+
+async function markEntityConflict(item: SyncQueueItem) {
+  if (item.entity === "fixed_expense") {
+    await markFixedExpenseConflict(item.entityId);
+    return;
+  }
+
+  if (item.entity === "fixed_expense_occurrence") {
+    await markFixedExpenseOccurrenceConflict(item.entityId);
+    return;
+  }
+
+  await markTransactionConflict(item.entityId);
 }

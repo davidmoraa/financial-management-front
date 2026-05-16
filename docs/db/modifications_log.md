@@ -2,6 +2,47 @@
 
 This document tracks all changes made to database schema or persistence behavior, including the executed SQL queries and the rationale behind them.
 
+## [2026-05-16] Fixed Expenses Forecast
+
+**Status:**
+- Frontend does not execute SQL
+- Frontend does not connect directly to PostgreSQL or Supabase
+- Local IndexedDB schema extended
+- Remote migration executed from sibling API repo
+
+**Rationale:**
+- Fixed monthly commitments must exist separately from real transactions.
+- The app must support paid/skipped monthly occurrences offline.
+- Forecast and warnings must work from local data first.
+
+**Frontend schema impact:**
+- IndexedDB database `financial-management-offline-db` upgraded to version 2
+- Added local tables:
+  - `fixedExpenses`
+  - `fixedExpenseOccurrences`
+- Extended local `transactions` with optional:
+  - `fixedExpenseId`
+  - `fixedExpenseOccurrenceId`
+- Extended local `syncQueue` entity support:
+  - `fixed_expense`
+  - `fixed_expense_occurrence`
+
+**Remote schema impact:**
+- See API repo docs:
+  - `../financial-management-api/docs/db/schema.md`
+  - `../financial-management-api/docs/db/modifications_log.md`
+  - `../financial-management-api/docs/db/procedures_log.md`
+
+**Procedures executed:**
+- None from the frontend repo
+- Supabase migration executed from `../financial-management-api`
+
+**Remote migration executed from API repo:**
+
+```txt
+../financial-management-api/supabase/migrations/20260516170000_fixed_expenses_forecast.sql
+```
+
 ## [2026-05-16] Initial Frontend Foundation
 
 **Status:**

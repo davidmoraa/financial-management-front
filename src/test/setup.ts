@@ -5,6 +5,7 @@ import { cleanup } from "@testing-library/react";
 import { resetOfflineDatabaseForTests } from "@/lib/offline/db";
 import { useNetworkStore } from "@/stores/networkStore";
 import { useAuthStore } from "@/stores/authStore";
+import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 
 if (!globalThis.crypto?.randomUUID) {
@@ -32,6 +33,12 @@ afterEach(async () => {
     user: null,
     isAuthenticated: false,
     isAuthLoading: false,
+  });
+  useFixedExpenseStore.setState({
+    fixedExpenses: [],
+    occurrences: [],
+    isHydrated: false,
+    isHydrating: false,
   });
   window.localStorage.clear();
   useNetworkStore.setState({

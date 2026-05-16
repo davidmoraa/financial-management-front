@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Grid2X2, History, Plus, Settings, Tags, WalletCards } from "lucide-react";
+import { CalendarClock, Grid2X2, History, Plus, Settings, Tags, WalletCards } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: Grid2X2, end: true },
   { to: "/new", label: "Nuevo movimiento", icon: Plus },
   { to: "/history", label: "Historial", icon: History },
+  { to: "/fixed-expenses", label: "Gastos fijos", icon: CalendarClock },
   { to: "/categories", label: "Categorías", icon: Tags },
   { to: "/settings", label: "Ajustes", icon: Settings },
 ];

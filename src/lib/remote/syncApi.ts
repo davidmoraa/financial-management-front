@@ -1,7 +1,10 @@
 import { apiClient } from "@/lib/api/client";
 import type { SyncQueueItem, Transaction } from "@/types/finance";
+import type { FixedExpense, FixedExpenseOccurrence } from "@/types/fixedExpenses";
 
 export type RemoteTransaction = Omit<Transaction, "syncStatus">;
+export type RemoteFixedExpense = Omit<FixedExpense, "syncStatus">;
+export type RemoteFixedExpenseOccurrence = Omit<FixedExpenseOccurrence, "syncStatus">;
 
 export type PushSyncResponse = {
   serverTime: string;
@@ -13,6 +16,8 @@ export type PushSyncResponse = {
 export type PullSyncResponse = {
   serverTime: string;
   transactions: RemoteTransaction[];
+  fixedExpenses: RemoteFixedExpense[];
+  fixedExpenseOccurrences: RemoteFixedExpenseOccurrence[];
 };
 
 export function pushSyncOperations(input: { deviceId: string; operations: SyncQueueItem[] }) {

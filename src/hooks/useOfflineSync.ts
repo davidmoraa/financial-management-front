@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { syncPendingItems } from "@/lib/offline/syncEngine";
 import { useAuthStore } from "@/stores/authStore";
+import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
 import { useNetworkStore } from "@/stores/networkStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 
@@ -13,7 +14,10 @@ export function useOfflineSync() {
 
   useEffect(() => {
     const cleanupNetworkListeners = initializeNetworkListeners();
-    void useTransactionStore.getState().hydrate().then(() => {
+    void Promise.all([
+      useTransactionStore.getState().hydrate(),
+      useFixedExpenseStore.getState().hydrate(),
+    ]).then(() => {
       void useTransactionStore.getState().refreshSyncCounts();
     });
 
@@ -29,7 +33,10 @@ export function useOfflineSync() {
 
     void syncPendingItems()
       .finally(async () => {
-        await useTransactionStore.getState().refreshTransactions();
+        await Promise.all([
+          useTransactionStore.getState().refreshTransactions(),
+          useFixedExpenseStore.getState().refreshAll(),
+        ]);
         syncInFlight.current = false;
       });
   }, [isAuthenticated, isOnline, pendingSyncCount]);
