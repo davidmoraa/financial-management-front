@@ -1,0 +1,8 @@
+# Features Log
+
+Registro cronológico de features y fixes relevantes.
+
+| Date | Branch | Status | Document | DB impact |
+| ---- | ------ | ------ | -------- | --------- |
+| 2026-05-16 | `feature/offline-first-pwa` | In PR | [Offline-First PWA Persistence](./2026-05-16-offline-first-pwa.md) | Local IndexedDB only, no remote DB changes |
+| 2026-05-16 | `docs/project-tracking-standards` | In progress | [Project Tracking Standards](../process/project-tracking-standards.md) | No DB changes |

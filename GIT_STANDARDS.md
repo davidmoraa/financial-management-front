@@ -84,6 +84,12 @@ chore: configure Vite build ignores
 - Decisiones de arquitectura: `docs/architecture/*.md`
 - Cambios de modelo de datos: `docs/db/*.md` cuando exista persistencia
 - Cambios de producto/UX relevantes: documentar alcance, decisión, implementación y verificación
+- Features relevantes: `docs/features/YYYY-MM-DD-nombre-de-feature.md`
+- Índice de features: `docs/features/FEATURES_LOG.md`
+- Procedimientos SQL ejecutados: `docs/db/procedures_log.md`
+- Cambios de esquema o impacto de persistencia: `docs/db/modifications_log.md`
+
+Toda feature debe declarar explícitamente su impacto en base de datos, incluso si es `Sin cambio de esquema`.
 
 ## Reglas sobre `dist/`
 
