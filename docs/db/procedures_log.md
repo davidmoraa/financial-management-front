@@ -39,18 +39,32 @@ Required fields:
 
 **Environment:**
 - Frontend repo plus sibling API repo
+- Linked Supabase project
 
 **Reason:**
-- Prepare Node.js API and migration for future PostgreSQL sync.
+- Prepare and execute the Node.js API migration required for PostgreSQL sync.
 
 **SQL executed:**
 
 ```sql
--- None executed against a live database in this work session.
+-- No SQL executed from the frontend repo.
+-- The migration was executed from the sibling API repo with Supabase CLI.
 ```
 
 **Source migration prepared:**
 
 ```txt
 ../financial-management-api/src/db/migrations/001_initial_schema.sql
+../financial-management-api/supabase/migrations/20260516150000_initial_schema.sql
 ```
+
+**Procedure executed from API repo:**
+
+```bash
+supabase db push --include-all
+supabase migration list
+```
+
+**Result:**
+- Migration `20260516150000_initial_schema.sql` applied successfully.
+- Frontend still does not connect directly to PostgreSQL or Supabase.

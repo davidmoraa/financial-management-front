@@ -58,7 +58,7 @@ This document tracks all changes made to database schema or persistence behavior
 **Status:**
 - Frontend does not execute SQL
 - Frontend does not connect directly to PostgreSQL or Supabase
-- Initial remote schema is prepared in sibling API repo
+- Initial remote schema was executed from the sibling API repo
 
 **API repo:**
 
@@ -82,4 +82,11 @@ This document tracks all changes made to database schema or persistence behavior
   - `../financial-management-api/docs/db/procedures_log.md`
 
 **Procedures executed:**
-- None against a live database in this work session
+- None from the frontend repo
+- Supabase migration executed from `../financial-management-api`
+
+**Remote migration executed from API repo:**
+
+```txt
+../financial-management-api/supabase/migrations/20260516150000_initial_schema.sql
+```
