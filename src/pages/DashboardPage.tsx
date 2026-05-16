@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useMemo } from "react";
-import { isSameMonth, parseISO } from "date-fns";
 import { ArrowRight, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { BalanceOverviewCard } from "@/components/dashboard/BalanceOverviewCard";
 import { MonthlyMetricCard } from "@/components/dashboard/MonthlyMetricCard";
@@ -13,37 +12,12 @@ import { formatShortDate } from "@/lib/formatters";
 export function DashboardPage() {
   const currentDate = useMemo(() => new Date(), []);
   const transactions = useTransactionStore((state) => state.transactions);
-  const monthlyBudget = useTransactionStore((state) => state.monthlyBudget);
+  const isHydrated = useTransactionStore((state) => state.isHydrated);
+  const getMonthlySummary = useTransactionStore((state) => state.getMonthlySummary);
+  const getRecentTransactions = useTransactionStore((state) => state.getRecentTransactions);
 
-  const monthTransactions = useMemo(
-    () => transactions.filter((transaction) => isSameMonth(parseISO(transaction.transactionDate), currentDate)),
-    [currentDate, transactions],
-  );
-
-  const summary = useMemo(() => {
-    const income = monthTransactions
-      .filter((transaction) => transaction.type === "income")
-      .reduce((total, transaction) => total + transaction.amount, 0);
-    const expense = monthTransactions
-      .filter((transaction) => transaction.type === "expense")
-      .reduce((total, transaction) => total + transaction.amount, 0);
-
-    return {
-      income,
-      expense,
-      balance: income - expense,
-      budget: monthlyBudget,
-      budgetUsedPercentage: monthlyBudget > 0 ? Math.round((expense / monthlyBudget) * 100) : 0,
-    };
-  }, [monthTransactions, monthlyBudget]);
-
-  const recentTransactions = useMemo(
-    () =>
-      [...transactions]
-        .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime())
-        .slice(0, 5),
-    [transactions],
-  );
+  const summary = useMemo(() => getMonthlySummary(currentDate), [currentDate, getMonthlySummary, transactions]);
+  const recentTransactions = useMemo(() => getRecentTransactions(5), [getRecentTransactions, transactions]);
 
   return (
     <div className="space-y-6">
@@ -59,6 +33,12 @@ export function DashboardPage() {
           </Link>
         </Button>
       </section>
+
+      {!isHydrated && (
+        <div className="rounded-2xl bg-white/75 px-4 py-3 text-sm font-semibold text-muted-foreground shadow-soft">
+          Cargando datos locales...
+        </div>
+      )}
 
       <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <BalanceOverviewCard balance={summary.balance} />

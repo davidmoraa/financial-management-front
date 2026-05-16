@@ -1,6 +1,7 @@
 import { Bell, CircleDollarSign, DatabaseZap, Wallet } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
 import { useTransactionStore } from "@/stores/transactionStore";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -17,7 +18,7 @@ export function SettingsPage() {
           <div>
             <h2 className="text-lg font-bold tracking-normal text-foreground">Preferencias iniciales</h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              La primera fase mantiene datos mock en memoria para validar la experiencia de captura y lectura.
+              La app guarda movimientos en IndexedDB para funcionar sin conexión y preparar la sincronización posterior.
             </p>
           </div>
         </div>
@@ -34,11 +35,12 @@ export function SettingsPage() {
         </div>
         <h2 className="mt-4 text-lg font-bold tracking-normal text-foreground">Persistencia</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Supabase, backend o localStorage se conectarán después. Por ahora los datos viven solo en memoria.
+          Supabase y backend se conectarán después. Por ahora los datos financieros viven en IndexedDB, no en localStorage.
         </p>
-        <Badge tone="warning" className="mt-4">
-          Fase mock
-        </Badge>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Badge tone="warning">Offline-first</Badge>
+          <SyncStatusBadge />
+        </div>
       </Card>
 
       <Card className="p-5 lg:col-span-3">

@@ -8,7 +8,7 @@ Base inicial implementada con datos mock en memoria.
 
 - React + TypeScript + Vite.
 - Tailwind CSS con componentes UI locales estilo shadcn/ui.
-- Zustand para estado en memoria.
+- Zustand para estado de UI y cache local hidratada desde IndexedDB.
 - React Hook Form + Zod para validación del formulario de movimientos.
 - date-fns para fechas.
 - lucide-react para iconografía.
@@ -16,8 +16,9 @@ Base inicial implementada con datos mock en memoria.
 
 ## Decisiones
 
-- No se conecta Supabase, backend ni localStorage en esta fase.
-- Los movimientos y categorías viven en stores de Zustand.
+- No se conecta Supabase, backend ni localStorage para movimientos financieros en esta fase.
+- Los movimientos viven en IndexedDB y se reflejan en Zustand para la UI.
+- La app está configurada como PWA offline-first con service worker y manifest.
 - El dashboard calcula métricas desde estado estable con `useMemo` para evitar selectores derivados inestables en Zustand v5.
 - `dist/` queda fuera de git siguiendo el estándar frontend de Jomi Matcha.
 

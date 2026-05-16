@@ -1,5 +1,5 @@
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
-import type { Transaction } from "@/types/finance";
+import type { SyncStatus, Transaction } from "@/types/finance";
 import { CategoryBadge } from "@/components/categories/CategoryBadge";
 import { Badge } from "@/components/ui/badge";
 import { formatSignedCurrency, formatTransactionDate, paymentMethodLabels } from "@/lib/formatters";
@@ -37,6 +37,7 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
             <p className="mt-2 text-sm font-medium text-muted-foreground">
               {formatTransactionDate(transaction.transactionDate)} · {paymentMethodLabels[transaction.paymentMethod]}
             </p>
+            <SyncStateLabel status={transaction.syncStatus} />
             {transaction.note && <p className="mt-1 line-clamp-2 text-sm text-foreground">{transaction.note}</p>}
           </div>
 
@@ -47,4 +48,24 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
       </div>
     </article>
   );
+}
+
+function SyncStateLabel({ status }: { status: SyncStatus }) {
+  const label = {
+    synced: "Sincronizado",
+    pending: "Pendiente de sincronizar",
+    syncing: "Sincronizando",
+    failed: "Error de sincronización",
+    conflict: "Conflicto",
+  }[status];
+
+  const className = {
+    synced: "text-teal-600",
+    pending: "text-amber-600",
+    syncing: "text-lime-700",
+    failed: "text-red-600",
+    conflict: "text-purple-700",
+  }[status];
+
+  return <p className={cn("mt-1 text-xs font-bold", className)}>{label}</p>;
 }

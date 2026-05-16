@@ -1,5 +1,7 @@
 export type TransactionType = "income" | "expense";
 
+export type SyncStatus = "synced" | "pending" | "syncing" | "failed" | "conflict";
+
 export type PaymentMethod =
   | "cash"
   | "debit_card"
@@ -24,6 +26,11 @@ export type Transaction = {
   paymentMethod: PaymentMethod;
   transactionDate: string;
   note?: string;
+  syncStatus: SyncStatus;
+  clientCreatedAt: string;
+  clientUpdatedAt: string;
+  serverUpdatedAt?: string;
+  deletedAt?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -34,4 +41,23 @@ export type MonthlySummary = {
   balance: number;
   budget: number;
   budgetUsedPercentage: number;
+};
+
+export type SyncQueueEntity = "transaction";
+
+export type SyncQueueOperation = "create" | "update" | "delete";
+
+export type SyncQueueStatus = "pending" | "processing" | "done" | "failed";
+
+export type SyncQueueItem = {
+  id: string;
+  entity: SyncQueueEntity;
+  entityId: string;
+  operation: SyncQueueOperation;
+  payload: unknown;
+  status: SyncQueueStatus;
+  attempts: number;
+  lastError?: string;
+  createdAt: string;
+  updatedAt: string;
 };

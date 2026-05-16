@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Plus, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   "/": {
@@ -42,14 +43,20 @@ export function AppHeader() {
           </div>
         </div>
 
-        {location.pathname !== "/new" && (
-          <Button asChild className="hidden md:inline-flex" size="md">
-            <Link to="/new">
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Nuevo movimiento
-            </Link>
-          </Button>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          <SyncStatusBadge className="hidden sm:inline-flex" />
+          {location.pathname !== "/new" && (
+            <Button asChild className="hidden md:inline-flex" size="md">
+              <Link to="/new">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Nuevo movimiento
+              </Link>
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="px-4 pb-3 sm:hidden">
+        <SyncStatusBadge className="w-full justify-center" />
       </div>
     </header>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { CalendarDays, Coins, FileText, Save } from "lucide-react";
+import { CalendarDays, CloudOff, Coins, FileText, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { CategoryQuickSelect } from "@/components/transactions/CategoryQuickSele
 import { PaymentMethodSelect } from "@/components/transactions/PaymentMethodSelect";
 import { TransactionTypeToggle } from "@/components/transactions/TransactionTypeToggle";
 import { transactionSchema, type TransactionFormValues } from "@/schemas/transactionSchema";
+import { useNetworkStore } from "@/stores/networkStore";
 import { useCategoryStore } from "@/stores/categoryStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 import type { PaymentMethod, TransactionType } from "@/types/finance";
@@ -38,8 +39,10 @@ function getInitialValues(type: TransactionType = "expense", paymentMethod: Paym
 
 export function TransactionForm() {
   const addTransaction = useTransactionStore((state) => state.addTransaction);
+  const isOnline = useNetworkStore((state) => state.isOnline);
   const getCategoriesByType = useCategoryStore((state) => state.getCategoriesByType);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [offlineSaved, setOfflineSaved] = useState(false);
   const successTimer = useRef<number | undefined>(undefined);
 
   const {
@@ -75,15 +78,19 @@ export function TransactionForm() {
     };
   }, []);
 
-  const onSubmit = (values: TransactionFormValues) => {
-    addTransaction(values);
+  const onSubmit = async (values: TransactionFormValues) => {
+    await addTransaction(values);
     setShowSuccess(true);
+    setOfflineSaved(!isOnline);
     reset(getInitialValues(values.type, values.paymentMethod));
 
     if (successTimer.current) {
       window.clearTimeout(successTimer.current);
     }
-    successTimer.current = window.setTimeout(() => setShowSuccess(false), 1400);
+    successTimer.current = window.setTimeout(() => {
+      setShowSuccess(false);
+      setOfflineSaved(false);
+    }, 2200);
   };
 
   return (
@@ -170,6 +177,13 @@ export function TransactionForm() {
             <Save className="h-5 w-5" aria-hidden="true" />
             Guardar movimiento
           </Button>
+
+          {offlineSaved && (
+            <div className="flex items-start gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold leading-5 text-amber-800">
+              <CloudOff className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              Guardado en este dispositivo. Se sincronizará cuando vuelva internet.
+            </div>
+          )}
         </form>
       </Card>
     </>

@@ -4,12 +4,14 @@ import { SlidersHorizontal } from "lucide-react";
 import { TransactionList } from "@/components/transactions/TransactionList";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
 import { useCategoryStore } from "@/stores/categoryStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 import type { TransactionType } from "@/types/finance";
 import { cn } from "@/lib/utils";
 
 type TypeFilter = "all" | TransactionType;
+type SyncFilter = "all" | "synced" | "pending" | "failed";
 
 const typeFilters: Array<{ value: TypeFilter; label: string }> = [
   { value: "all", label: "Todos" },
@@ -19,6 +21,7 @@ const typeFilters: Array<{ value: TypeFilter; label: string }> = [
 
 export function HistoryPage() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [syncFilter, setSyncFilter] = useState<SyncFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [month, setMonth] = useState(() => format(new Date(), "yyyy-MM"));
   const categories = useCategoryStore((state) => state.categories);
@@ -36,12 +39,19 @@ export function HistoryPage() {
   const filteredTransactions = monthTransactions.filter((transaction) => {
     const matchesType = typeFilter === "all" || transaction.type === typeFilter;
     const matchesCategory = categoryFilter === "all" || transaction.categoryId === categoryFilter;
-    return matchesType && matchesCategory;
+    const matchesSync =
+      syncFilter === "all" ||
+      transaction.syncStatus === syncFilter ||
+      (syncFilter === "pending" && transaction.syncStatus === "syncing");
+    return matchesType && matchesCategory && matchesSync;
   });
 
   return (
     <div className="space-y-5">
       <Card className="p-5">
+        <div className="mb-4">
+          <SyncStatusBadge />
+        </div>
         <div className="mb-4 flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-teal-100 text-primary">
             <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
@@ -52,7 +62,7 @@ export function HistoryPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1.2fr]">
+        <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_1.2fr]">
           <div className="space-y-2">
             <Label>Tipo</Label>
             <div className="grid grid-cols-3 gap-2 rounded-2xl bg-teal-50 p-1">
@@ -70,6 +80,25 @@ export function HistoryPage() {
                   )}
                 >
                   {filter.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Sync</Label>
+            <div className="grid grid-cols-4 gap-1 rounded-2xl bg-teal-50 p-1">
+              {(["all", "synced", "pending", "failed"] as SyncFilter[]).map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  onClick={() => setSyncFilter(filter)}
+                  className={cn(
+                    "h-10 rounded-xl px-1 text-xs font-bold transition",
+                    syncFilter === filter ? "bg-white text-primary shadow-soft" : "text-muted-foreground",
+                  )}
+                >
+                  {filter === "all" ? "Todos" : filter === "synced" ? "Sync" : filter === "pending" ? "Pend." : "Error"}
                 </button>
               ))}
             </div>

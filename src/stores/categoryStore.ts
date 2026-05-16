@@ -7,7 +7,7 @@ type CategoryState = {
   getCategoryById: (id: string) => Category | undefined;
 };
 
-const initialCategories: Category[] = [
+export const initialCategories: Category[] = [
   { id: "food", name: "Comida", type: "expense", icon: "utensils", color: "bg-emerald-100 text-emerald-700" },
   { id: "transport", name: "Transporte", type: "expense", icon: "car", color: "bg-sky-100 text-sky-700" },
   { id: "home", name: "Casa", type: "expense", icon: "home", color: "bg-teal-100 text-teal-700" },
