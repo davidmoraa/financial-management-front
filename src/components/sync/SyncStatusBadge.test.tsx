@@ -23,12 +23,12 @@ describe("SyncStatusBadge", () => {
 
     render(<SyncStatusBadge />);
 
-    expect(screen.getByText("Sin conexión — 2 pendientes")).toBeInTheDocument();
+    expect(screen.getByText("Sin conexión — se sincronizará después")).toBeInTheDocument();
   });
 
   it("muestra estado local cuando no hay sesión", () => {
     render(<SyncStatusBadge />);
 
-    expect(screen.getByText("Datos guardados solo en este dispositivo")).toBeInTheDocument();
+    expect(screen.getByText("Datos solo en este dispositivo")).toBeInTheDocument();
   });
 });

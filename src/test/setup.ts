@@ -31,9 +31,12 @@ afterEach(async () => {
   useAuthStore.setState({
     token: null,
     user: null,
+    profile: null,
+    linkedProviders: [],
     isAuthenticated: false,
     isAuthLoading: false,
   });
+  window.sessionStorage.clear();
   useFixedExpenseStore.setState({
     fixedExpenses: [],
     occurrences: [],

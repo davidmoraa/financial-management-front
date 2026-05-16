@@ -25,7 +25,7 @@ export function useOfflineSync() {
   }, [initializeNetworkListeners]);
 
   useEffect(() => {
-    if (!isAuthenticated || !isOnline || syncInFlight.current || pendingSyncCount === 0) {
+    if (!isAuthenticated || !isOnline || syncInFlight.current) {
       return;
     }
 

@@ -80,7 +80,7 @@ export async function ensureOfflineDatabaseReady() {
     }
 
     const transactionCount = await financeDb.transactions.count();
-    if (transactionCount === 0) {
+    if (transactionCount === 0 && shouldSeedDevelopmentData()) {
       await financeDb.transactions.bulkPut(createInitialTransactions(timestamp));
     }
 
@@ -93,6 +93,10 @@ export async function ensureOfflineDatabaseReady() {
 }
 
 async function ensureInitialFixedExpenses() {
+  if (!shouldSeedDevelopmentData()) {
+    return;
+  }
+
   const fixedExpenseCount = await financeDb.fixedExpenses.count();
   if (fixedExpenseCount > 0) {
     return;
@@ -138,6 +142,18 @@ export async function setLastPulledAt(value: string) {
 export async function resetOfflineDatabaseForTests() {
   await financeDb.delete();
   await financeDb.open();
+}
+
+function shouldSeedDevelopmentData() {
+  if (!import.meta.env.DEV) {
+    return false;
+  }
+
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  return !window.localStorage.getItem("financial_management_auth_token");
 }
 
 function createInitialTransactions(timestamp: string): Transaction[] {

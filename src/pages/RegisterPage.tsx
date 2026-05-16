@@ -4,10 +4,11 @@ import type { ReactNode } from "react";
 import { UserPlus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { AuthPageShell } from "@/pages/LoginPage";
+import { AuthPageShell, OAuthButtons } from "@/pages/LoginPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { requestAppleIdToken, requestGoogleIdToken } from "@/lib/oauth/browserProviders";
 import { useAuthStore } from "@/stores/authStore";
 
 const registerSchema = z.object({
@@ -21,6 +22,8 @@ type RegisterValues = z.infer<typeof registerSchema>;
 export function RegisterPage() {
   const navigate = useNavigate();
   const registerAccount = useAuthStore((state) => state.register);
+  const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
+  const loginWithApple = useAuthStore((state) => state.loginWithApple);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   const {
     register,
@@ -38,9 +41,32 @@ export function RegisterPage() {
     }
   };
 
+  const onSocialLogin = async (provider: "google" | "apple") => {
+    try {
+      if (provider === "google") {
+        await loginWithGoogle(await requestGoogleIdToken());
+      } else {
+        const result = await requestAppleIdToken();
+        await loginWithApple(result.idToken, { displayName: result.displayName });
+      }
+      navigate("/", { replace: true });
+    } catch {
+      setError("root", { message: "No se pudo continuar con ese proveedor." });
+    }
+  };
+
   return (
     <AuthPageShell title="Crea tu cuenta" subtitle="Tus datos seguirán funcionando offline en este dispositivo.">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-4">
+        <OAuthButtons disabled={isAuthLoading} onGoogle={() => void onSocialLogin("google")} onApple={() => void onSocialLogin("apple")} />
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs font-bold uppercase tracking-normal text-muted-foreground">Email opcional</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
         <Field label="Nombre" error={errors.displayName?.message}>
           <Input autoComplete="name" {...register("displayName")} />
         </Field>

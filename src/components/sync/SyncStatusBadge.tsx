@@ -48,7 +48,7 @@ function getBadgeState({
 }) {
   if (!isAuthenticated) {
     return {
-      label: "Datos guardados solo en este dispositivo",
+      label: "Datos solo en este dispositivo",
       icon: CloudOff,
       className: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
     };
@@ -72,7 +72,7 @@ function getBadgeState({
 
   if (!isOnline) {
     return {
-      label: `Sin conexión — ${pendingSyncCount} pendientes`,
+      label: "Sin conexión — se sincronizará después",
       icon: CloudOff,
       className: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
     };

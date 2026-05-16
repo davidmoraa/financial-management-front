@@ -17,6 +17,43 @@ Required fields:
 - Verification query/result
 - Rollback notes if applicable
 
+## [2026-05-16] OAuth social auth
+
+**Environment:**
+- Frontend repo plus sibling API repo
+- Linked Supabase project
+
+**Reason:**
+- Execute the API-owned migration required for OAuth account linking.
+
+**SQL executed:**
+
+```sql
+-- No SQL executed from the frontend repo.
+-- The migration was executed from the sibling API repo with Supabase CLI.
+```
+
+**Source migration:**
+
+```txt
+../financial-management-api/src/db/migrations/003_auth_accounts.sql
+../financial-management-api/supabase/migrations/20260516190000_auth_accounts.sql
+```
+
+**Procedure executed from API repo:**
+
+```bash
+supabase db push --dry-run --include-all
+supabase db push --include-all
+supabase migration list
+supabase db lint --linked
+```
+
+**Result:**
+- Migration `20260516190000_auth_accounts.sql` applied successfully.
+- Supabase DB lint reported no schema errors.
+- Frontend still does not connect directly to PostgreSQL or Supabase.
+
 ## [2026-05-16] Fixed expenses forecast
 
 **Environment:**
