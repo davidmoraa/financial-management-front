@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useMemo } from "react";
-import { ArrowRight, Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRight, CalendarClock, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { BalanceOverviewCard } from "@/components/dashboard/BalanceOverviewCard";
 import { MoneyFluxLogo } from "@/components/brand/MoneyFluxLogo";
 import { BudgetForecastCard } from "@/components/dashboard/BudgetForecastCard";
@@ -38,6 +38,7 @@ export function DashboardPage() {
       }),
     [currentDate, fixedExpenses, monthlyBudget, occurrences, transactions],
   );
+  const hasFinancialData = transactions.some((transaction) => !transaction.deletedAt) || fixedExpenses.some((fixedExpense) => !fixedExpense.deletedAt);
 
   return (
     <div className="space-y-6">
@@ -61,6 +62,29 @@ export function DashboardPage() {
         <div className="rounded-2xl bg-white/75 px-4 py-3 text-sm font-semibold text-muted-foreground shadow-soft">
           Cargando datos locales...
         </div>
+      )}
+
+      {isHydrated && !hasFinancialData && (
+        <section className="rounded-[1.6rem] border border-teal-100 bg-white p-5 shadow-soft">
+          <h2 className="text-xl font-bold tracking-normal text-foreground">Aún no tienes movimientos registrados.</h2>
+          <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+            Registra tu primer movimiento o agrega un gasto fijo para empezar a ver proyecciones útiles.
+          </p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <Button asChild>
+              <Link to="/new">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Registrar primer movimiento
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/fixed-expenses">
+                <CalendarClock className="h-4 w-4" aria-hidden="true" />
+                Agregar gasto fijo
+              </Link>
+            </Button>
+          </div>
+        </section>
       )}
 
       <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">

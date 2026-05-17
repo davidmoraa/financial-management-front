@@ -19,6 +19,11 @@ export function CategoryQuickSelect({ type, value, onChange }: CategoryQuickSele
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-2 md:flex-wrap md:overflow-visible" role="radiogroup" aria-label="Categoría">
+      {categories.length === 0 && (
+        <p className="rounded-2xl bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900">
+          No hay categorías disponibles. Intenta sincronizar cuando tengas conexión.
+        </p>
+      )}
       {categories.map((category) => {
         const selected = value === category.id;
 

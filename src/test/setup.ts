@@ -5,6 +5,7 @@ import { cleanup } from "@testing-library/react";
 import { resetOfflineDatabaseForTests } from "@/lib/offline/db";
 import { useNetworkStore } from "@/stores/networkStore";
 import { useAuthStore } from "@/stores/authStore";
+import { useCategoryStore } from "@/stores/categoryStore";
 import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 
@@ -40,6 +41,11 @@ afterEach(async () => {
   useFixedExpenseStore.setState({
     fixedExpenses: [],
     occurrences: [],
+    isHydrated: false,
+    isHydrating: false,
+  });
+  useCategoryStore.setState({
+    categories: [],
     isHydrated: false,
     isHydrating: false,
   });

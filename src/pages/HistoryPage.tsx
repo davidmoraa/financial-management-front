@@ -30,7 +30,7 @@ export function HistoryPage() {
   const monthTransactions = useMemo(
     () =>
       transactions
-        .filter((transaction) => isSameMonth(parseISO(transaction.transactionDate), monthDate))
+        .filter((transaction) => !transaction.deletedAt && isSameMonth(parseISO(transaction.transactionDate), monthDate))
         .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()),
     [monthDate, transactions],
   );
@@ -45,6 +45,7 @@ export function HistoryPage() {
       (syncFilter === "pending" && transaction.syncStatus === "syncing");
     return matchesType && matchesCategory && matchesSync;
   });
+  const hasTransactions = transactions.some((transaction) => !transaction.deletedAt);
 
   return (
     <div className="space-y-5">
@@ -136,8 +137,8 @@ export function HistoryPage() {
 
       <TransactionList
         transactions={filteredTransactions}
-        emptyTitle="Sin movimientos para estos filtros"
-        emptyDescription="Cambia el mes, tipo o categoría para revisar otra vista."
+        emptyTitle={hasTransactions ? "Sin movimientos para estos filtros" : "Todavía no hay movimientos."}
+        emptyDescription={hasTransactions ? "Cambia el mes, tipo o categoría para revisar otra vista." : "Registra un movimiento para empezar tu historial."}
       />
     </div>
   );

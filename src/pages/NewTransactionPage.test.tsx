@@ -2,12 +2,20 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { NewTransactionPage } from "@/pages/NewTransactionPage";
+import { useCategoryStore } from "@/stores/categoryStore";
 import { useNetworkStore } from "@/stores/networkStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 
 describe("NewTransactionPage", () => {
   it("permite guardar aunque isOnline sea false", async () => {
     useNetworkStore.setState({ isOnline: false });
+    useCategoryStore.setState({
+      categories: [
+        { id: "food", name: "Comida", type: "expense", icon: "utensils", color: "bg-emerald-100 text-emerald-700" },
+      ],
+      isHydrated: true,
+      isHydrating: false,
+    });
     const user = userEvent.setup();
 
     render(<NewTransactionPage />);
