@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
 import { Button } from "@/components/ui/button";
-import { requestAppleIdToken, requestGoogleIdToken } from "@/lib/oauth/browserProviders";
+import { requestAppleIdToken } from "@/lib/oauth/browserProviders";
+import { startSupabaseGoogleOAuth } from "@/lib/oauth/supabaseGoogle";
 import { syncPendingItems } from "@/lib/offline/syncEngine";
 import { useAuthStore } from "@/stores/authStore";
 import { useTransactionStore } from "@/stores/transactionStore";
@@ -17,7 +18,6 @@ export function SettingsPage() {
   const isSyncing = useTransactionStore((state) => state.isSyncing);
   const user = useAuthStore((state) => state.user);
   const linkedProviders = useAuthStore((state) => state.linkedProviders);
-  const linkGoogle = useAuthStore((state) => state.linkGoogle);
   const linkApple = useAuthStore((state) => state.linkApple);
   const unlinkProvider = useAuthStore((state) => state.unlinkProvider);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -38,7 +38,7 @@ export function SettingsPage() {
   const handleLinkGoogle = async () => {
     setProviderError(null);
     try {
-      await linkGoogle(await requestGoogleIdToken());
+      await startSupabaseGoogleOAuth({ intent: "link_google", intendedPath: "/settings" });
     } catch {
       setProviderError("No se pudo vincular Google. Puede que ya esté vinculado a otra cuenta.");
     }

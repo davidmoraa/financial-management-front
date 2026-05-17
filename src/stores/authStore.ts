@@ -4,8 +4,10 @@ import {
   getLinkedAccounts,
   linkApple as linkAppleAccount,
   linkGoogle as linkGoogleAccount,
+  linkSupabaseGoogle as linkSupabaseGoogleAccount,
   loginWithAppleIdToken,
   loginWithGoogleIdToken,
+  loginWithSupabaseGoogleAccessToken,
   unlinkProvider as unlinkRemoteProvider,
   type AuthProfile,
   type AuthProvider,
@@ -24,8 +26,10 @@ type AuthState = {
   login: (input: { email: string; password: string }) => Promise<void>;
   register: (input: { email: string; password: string; displayName?: string }) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
+  loginWithSupabaseGoogle: (accessToken: string) => Promise<void>;
   loginWithApple: (idToken: string, input?: { displayName?: string; nonce?: string }) => Promise<void>;
   linkGoogle: (idToken: string) => Promise<void>;
+  linkSupabaseGoogle: (accessToken: string) => Promise<void>;
   linkApple: (idToken: string, input?: { displayName?: string; nonce?: string }) => Promise<void>;
   unlinkProvider: (provider: Exclude<AuthProvider, "password">) => Promise<void>;
   refreshLinkedProviders: () => Promise<void>;
@@ -89,6 +93,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       throw error;
     }
   },
+  loginWithSupabaseGoogle: async (accessToken) => {
+    set({ isAuthLoading: true });
+    try {
+      const result = await loginWithSupabaseGoogleAccessToken(accessToken);
+      storeToken(result.token);
+      setAuthResult(set, result);
+    } catch (error) {
+      set({ isAuthLoading: false });
+      throw error;
+    }
+  },
   loginWithApple: async (idToken, input) => {
     set({ isAuthLoading: true });
     try {
@@ -104,6 +119,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthLoading: true });
     try {
       const result = await linkGoogleAccount(idToken);
+      storeToken(result.token);
+      setAuthResult(set, result);
+    } catch (error) {
+      set({ isAuthLoading: false });
+      throw error;
+    }
+  },
+  linkSupabaseGoogle: async (accessToken) => {
+    set({ isAuthLoading: true });
+    try {
+      const result = await linkSupabaseGoogleAccount(accessToken);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {

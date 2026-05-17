@@ -33,12 +33,20 @@ export function loginWithGoogleIdToken(idToken: string) {
   return apiClient.post<AuthResponse>("/v1/oauth/google/login", { idToken });
 }
 
+export function loginWithSupabaseGoogleAccessToken(accessToken: string) {
+  return apiClient.post<AuthResponse>("/v1/oauth/google/login", { accessToken });
+}
+
 export function loginWithAppleIdToken(idToken: string, input?: { nonce?: string; displayName?: string }) {
   return apiClient.post<AuthResponse>("/v1/oauth/apple/login", { idToken, ...input });
 }
 
 export function linkGoogle(idToken: string) {
   return apiClient.post<AuthResponse>("/v1/oauth/google/link", { idToken });
+}
+
+export function linkSupabaseGoogle(accessToken: string) {
+  return apiClient.post<AuthResponse>("/v1/oauth/google/link", { accessToken });
 }
 
 export function linkApple(idToken: string, input?: { nonce?: string; displayName?: string }) {

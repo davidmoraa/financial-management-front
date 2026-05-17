@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { requestAppleIdToken, requestGoogleIdToken } from "@/lib/oauth/browserProviders";
+import { requestAppleIdToken } from "@/lib/oauth/browserProviders";
+import { startSupabaseGoogleOAuth } from "@/lib/oauth/supabaseGoogle";
 import { useAuthStore } from "@/stores/authStore";
 
 const loginSchema = z.object({
@@ -22,7 +23,6 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore((state) => state.login);
-  const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const loginWithApple = useAuthStore((state) => state.loginWithApple);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   const {
@@ -44,8 +44,11 @@ export function LoginPage() {
   const onSocialLogin = async (provider: "google" | "apple") => {
     try {
       if (provider === "google") {
-        const idToken = await requestGoogleIdToken();
-        await loginWithGoogle(idToken);
+        await startSupabaseGoogleOAuth({
+          intent: "login_google",
+          intendedPath: (location.state as { from?: string } | null)?.from ?? "/",
+        });
+        return;
       } else {
         const result = await requestAppleIdToken();
         await loginWithApple(result.idToken, { displayName: result.displayName });

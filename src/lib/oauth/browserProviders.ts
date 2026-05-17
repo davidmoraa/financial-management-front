@@ -1,20 +1,7 @@
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const appleClientId = import.meta.env.VITE_APPLE_CLIENT_ID;
-
-type GoogleCredentialResponse = {
-  credential?: string;
-};
 
 declare global {
   interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (input: { client_id: string; callback: (response: GoogleCredentialResponse) => void }) => void;
-          prompt: (callback?: (notification: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean }) => void) => void;
-        };
-      };
-    };
     AppleID?: {
       auth: {
         init: (input: { clientId: string; scope: string; redirectURI: string; usePopup: boolean }) => void;
@@ -22,33 +9,6 @@ declare global {
       };
     };
   }
-}
-
-export async function requestGoogleIdToken() {
-  if (!googleClientId) {
-    throw new Error("Google OAuth is not configured");
-  }
-
-  await loadScript("https://accounts.google.com/gsi/client", "google-identity-services");
-
-  return new Promise<string>((resolve, reject) => {
-    window.google?.accounts.id.initialize({
-      client_id: googleClientId,
-      callback: (response) => {
-        if (response.credential) {
-          resolve(response.credential);
-        } else {
-          reject(new Error("Google did not return an ID token"));
-        }
-      },
-    });
-
-    window.google?.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        reject(new Error("Google sign-in was not completed"));
-      }
-    });
-  });
 }
 
 export async function requestAppleIdToken() {

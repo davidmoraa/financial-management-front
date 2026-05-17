@@ -8,7 +8,8 @@ import { AuthPageShell, OAuthButtons } from "@/pages/LoginPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { requestAppleIdToken, requestGoogleIdToken } from "@/lib/oauth/browserProviders";
+import { requestAppleIdToken } from "@/lib/oauth/browserProviders";
+import { startSupabaseGoogleOAuth } from "@/lib/oauth/supabaseGoogle";
 import { useAuthStore } from "@/stores/authStore";
 
 const registerSchema = z.object({
@@ -22,7 +23,6 @@ type RegisterValues = z.infer<typeof registerSchema>;
 export function RegisterPage() {
   const navigate = useNavigate();
   const registerAccount = useAuthStore((state) => state.register);
-  const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const loginWithApple = useAuthStore((state) => state.loginWithApple);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   const {
@@ -44,7 +44,8 @@ export function RegisterPage() {
   const onSocialLogin = async (provider: "google" | "apple") => {
     try {
       if (provider === "google") {
-        await loginWithGoogle(await requestGoogleIdToken());
+        await startSupabaseGoogleOAuth({ intent: "login_google", intendedPath: "/" });
+        return;
       } else {
         const result = await requestAppleIdToken();
         await loginWithApple(result.idToken, { displayName: result.displayName });
