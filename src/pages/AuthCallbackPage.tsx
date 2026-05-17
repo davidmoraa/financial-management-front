@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { MoneyFluxLogo } from "@/components/brand/MoneyFluxLogo";
 import { Button } from "@/components/ui/button";
 import { getSupabaseClient, supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -71,6 +72,7 @@ export function AuthCallbackPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       {errorMessage ? (
         <div className="w-full max-w-sm rounded-2xl border border-border bg-white p-5 text-center shadow-soft">
+          <MoneyFluxLogo size="lg" className="mx-auto mb-4" />
           <h1 className="text-lg font-bold text-foreground">No se pudo completar el acceso</h1>
           <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">{errorMessage}</p>
           <Button asChild className="mt-5 w-full">
@@ -78,7 +80,10 @@ export function AuthCallbackPage() {
           </Button>
         </div>
       ) : (
-        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" aria-label="Procesando acceso" />
+        <div className="relative" aria-label="Procesando acceso">
+          <MoneyFluxLogo size="lg" />
+          <span className="absolute -inset-2 animate-spin rounded-[1.7rem] border-2 border-transparent border-b-primary" />
+        </div>
       )}
     </div>
   );

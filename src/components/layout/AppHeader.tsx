@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
-import { Plus, WalletCards } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MoneyFluxLogo } from "@/components/brand/MoneyFluxLogo";
 import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
@@ -34,9 +35,7 @@ export function AppHeader() {
     <header className="sticky top-0 z-30 border-b border-white/60 bg-background/72 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-8">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-primary shadow-soft md:hidden">
-            <WalletCards className="h-5 w-5" aria-hidden="true" />
-          </div>
+          <MoneyFluxLogo size="sm" className="md:hidden" />
           <div className="min-w-0">
             <h1 className="truncate text-xl font-bold tracking-normal text-foreground md:text-2xl">{copy.title}</h1>
             <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{copy.subtitle}</p>

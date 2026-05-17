@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useMemo } from "react";
 import { ArrowRight, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { BalanceOverviewCard } from "@/components/dashboard/BalanceOverviewCard";
+import { MoneyFluxLogo } from "@/components/brand/MoneyFluxLogo";
 import { BudgetForecastCard } from "@/components/dashboard/BudgetForecastCard";
 import { BudgetWarningsCard } from "@/components/dashboard/BudgetWarningsCard";
 import { FixedExpensesThisMonth } from "@/components/dashboard/FixedExpensesThisMonth";
@@ -41,9 +42,12 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <section className="flex flex-col gap-3 rounded-[1.6rem] bg-white/60 p-4 shadow-soft md:flex-row md:items-center md:justify-between md:p-5">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-normal text-primary">{formatShortDate(currentDate)}</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-normal text-foreground">Registra hoy, decide con calma.</h2>
+        <div className="flex min-w-0 items-center gap-3">
+          <MoneyFluxLogo size="lg" className="hidden sm:block" />
+          <div className="min-w-0">
+            <p className="text-sm font-bold uppercase tracking-normal text-primary">{formatShortDate(currentDate)}</p>
+            <h2 className="mt-1 text-2xl font-bold tracking-normal text-foreground">Registra hoy, decide con calma.</h2>
+          </div>
         </div>
         <Button asChild size="lg" className="w-full md:w-auto">
           <Link to="/new">

@@ -1,9 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
-import { Apple, Chrome, LogIn, WalletCards } from "lucide-react";
+import { Apple, Chrome, LogIn } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { MoneyFluxLogo } from "@/components/brand/MoneyFluxLogo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -118,10 +119,9 @@ export function AuthPageShell({ title, subtitle, children }: { title: string; su
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <Card className="w-full max-w-md p-6">
         <div className="mb-6 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lift">
-            <WalletCards className="h-6 w-6" aria-hidden="true" />
-          </div>
-          <h1 className="mt-4 text-2xl font-bold tracking-normal text-foreground">{title}</h1>
+          <MoneyFluxLogo size="xl" className="mx-auto" />
+          <p className="mt-4 text-sm font-bold uppercase tracking-[0.16em] text-primary">Money Flux</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-normal text-foreground">{title}</h1>
           <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">{subtitle}</p>
         </div>
         {children}

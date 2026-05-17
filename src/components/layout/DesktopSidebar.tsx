@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
-import { CalendarClock, Grid2X2, History, Plus, Settings, Tags, WalletCards } from "lucide-react";
+import { CalendarClock, Grid2X2, History, Plus, Settings, Tags } from "lucide-react";
+import { MoneyFluxLogo } from "@/components/brand/MoneyFluxLogo";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -15,11 +16,9 @@ export function DesktopSidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-white/80 bg-white/72 p-5 backdrop-blur-xl md:flex md:flex-col">
       <div className="flex items-center gap-3 px-2 py-2">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lift">
-          <WalletCards className="h-5 w-5" aria-hidden="true" />
-        </div>
+        <MoneyFluxLogo />
         <div>
-          <p className="text-sm font-semibold text-foreground">Finanzas</p>
+          <p className="text-sm font-semibold text-foreground">Money Flux</p>
           <p className="text-xs font-medium text-muted-foreground">Control personal</p>
         </div>
       </div>

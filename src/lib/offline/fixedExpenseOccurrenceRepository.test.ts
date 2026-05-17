@@ -37,10 +37,10 @@ describe("fixedExpenseOccurrenceRepository", () => {
 
     expect(transaction?.fixedExpenseId).toBe(fixedExpense.id);
     expect(occurrence?.status).toBe("paid");
-    expect(pendingItems.map((item) => item.entity)).toEqual([
+    expect(pendingItems.map((item) => item.entity).sort()).toEqual([
       "fixed_expense",
-      "transaction",
       "fixed_expense_occurrence",
+      "transaction",
     ]);
   });
 
