@@ -202,6 +202,16 @@ export async function mergeRemoteFixedExpenseOccurrence(remote: Omit<FixedExpens
   return occurrence;
 }
 
+export async function cacheRemoteFixedExpenseOccurrences(remotes: Array<Omit<FixedExpenseOccurrence, "syncStatus">>) {
+  const occurrences: FixedExpenseOccurrence[] = remotes.map((remote) => ({
+    ...remote,
+    syncStatus: "synced",
+  }));
+
+  await financeDb.fixedExpenseOccurrences.bulkPut(occurrences);
+  return occurrences;
+}
+
 export function monthStartIso(date: Date) {
   return startOfMonth(date).toISOString().slice(0, 10);
 }

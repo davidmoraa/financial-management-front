@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { syncPendingItems } from "@/lib/offline/syncEngine";
 import { useAuthStore } from "@/stores/authStore";
+import { useCategoryStore } from "@/stores/categoryStore";
 import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
 import { useNetworkStore } from "@/stores/networkStore";
 import { useTransactionStore } from "@/stores/transactionStore";
@@ -10,11 +11,13 @@ export function useOfflineSync() {
   const initializeNetworkListeners = useNetworkStore((state) => state.initializeNetworkListeners);
   const pendingSyncCount = useTransactionStore((state) => state.pendingSyncCount);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const userId = useAuthStore((state) => state.user?.id);
   const syncInFlight = useRef(false);
 
   useEffect(() => {
     const cleanupNetworkListeners = initializeNetworkListeners();
     void Promise.all([
+      useCategoryStore.getState().hydrate(),
       useTransactionStore.getState().hydrate(),
       useFixedExpenseStore.getState().hydrate(),
     ]).then(() => {
@@ -23,6 +26,15 @@ export function useOfflineSync() {
 
     return cleanupNetworkListeners;
   }, [initializeNetworkListeners]);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      useAuthStore.getState().logout();
+    };
+
+    window.addEventListener("financial-management:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("financial-management:unauthorized", handleUnauthorized);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || !isOnline || syncInFlight.current) {
@@ -34,10 +46,11 @@ export function useOfflineSync() {
     void syncPendingItems()
       .finally(async () => {
         await Promise.all([
+          useCategoryStore.getState().refreshCategories(),
           useTransactionStore.getState().refreshTransactions(),
           useFixedExpenseStore.getState().refreshAll(),
         ]);
         syncInFlight.current = false;
       });
-  }, [isAuthenticated, isOnline, pendingSyncCount]);
+  }, [isAuthenticated, isOnline, pendingSyncCount, userId]);
 }

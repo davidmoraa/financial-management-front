@@ -164,6 +164,16 @@ export async function mergeRemoteFixedExpense(remote: Omit<FixedExpense, "syncSt
   return fixedExpense;
 }
 
+export async function cacheRemoteFixedExpenses(remotes: Array<Omit<FixedExpense, "syncStatus">>) {
+  const fixedExpenses: FixedExpense[] = remotes.map((remote) => ({
+    ...remote,
+    syncStatus: "synced",
+  }));
+
+  await financeDb.fixedExpenses.bulkPut(fixedExpenses);
+  return fixedExpenses;
+}
+
 function isFixedExpenseActiveForMonth(fixedExpense: FixedExpense, targetMonth: Date) {
   if (fixedExpense.deletedAt || !fixedExpense.isActive) {
     return false;

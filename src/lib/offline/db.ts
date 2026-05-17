@@ -1,9 +1,8 @@
 import Dexie, { type Table } from "dexie";
 import type { Category, SyncQueueItem, Transaction } from "@/types/finance";
 import type { FixedExpense, FixedExpenseOccurrence } from "@/types/fixedExpenses";
-import { initialCategories } from "@/stores/categoryStore";
 
-export type FinanceSettingKey = "monthlyBudget" | "currency" | "initialSeedComplete" | "deviceId" | "lastPulledAt";
+export type FinanceSettingKey = "monthlyBudget" | "currency" | "initialSeedComplete" | "deviceId" | "lastPulledAt" | "currentUserId";
 
 export type FinanceSetting = {
   key: FinanceSettingKey;
@@ -45,22 +44,9 @@ export const financeDb = new FinanceDatabase();
 const nowIso = () => new Date().toISOString();
 
 export async function ensureOfflineDatabaseReady() {
-  await ensureInitialFixedExpenses();
-
-  const seedComplete = await financeDb.settings.get("initialSeedComplete");
-
-  if (seedComplete?.value === true) {
-    return;
-  }
-
   const timestamp = nowIso();
 
-  await financeDb.transaction("rw", financeDb.categories, financeDb.settings, financeDb.transactions, async () => {
-    const categoryCount = await financeDb.categories.count();
-    if (categoryCount === 0) {
-      await financeDb.categories.bulkPut(initialCategories);
-    }
-
+  await financeDb.transaction("rw", financeDb.settings, async () => {
     const budget = await financeDb.settings.get("monthlyBudget");
     if (!budget) {
       await financeDb.settings.put({
@@ -78,32 +64,45 @@ export async function ensureOfflineDatabaseReady() {
         updatedAt: timestamp,
       });
     }
-
-    const transactionCount = await financeDb.transactions.count();
-    if (transactionCount === 0 && shouldSeedDevelopmentData()) {
-      await financeDb.transactions.bulkPut(createInitialTransactions(timestamp));
-    }
-
-    await financeDb.settings.put({
-      key: "initialSeedComplete",
-      value: true,
-      updatedAt: timestamp,
-    });
   });
 }
 
-async function ensureInitialFixedExpenses() {
-  if (!shouldSeedDevelopmentData()) {
-    return;
-  }
-
-  const fixedExpenseCount = await financeDb.fixedExpenses.count();
-  if (fixedExpenseCount > 0) {
+export async function prepareOfflineCacheForUser(userId: string) {
+  const current = await financeDb.settings.get("currentUserId");
+  if (current?.value === userId) {
     return;
   }
 
   const timestamp = nowIso();
-  await financeDb.fixedExpenses.bulkPut(createInitialFixedExpenses(timestamp));
+  await financeDb.transaction(
+    "rw",
+    [
+      financeDb.transactions,
+      financeDb.fixedExpenses,
+      financeDb.fixedExpenseOccurrences,
+      financeDb.categories,
+      financeDb.syncQueue,
+      financeDb.settings,
+    ],
+    async () => {
+      if (typeof current?.value === "string" && current.value !== userId) {
+        await Promise.all([
+          financeDb.transactions.clear(),
+          financeDb.fixedExpenses.clear(),
+          financeDb.fixedExpenseOccurrences.clear(),
+          financeDb.categories.clear(),
+          financeDb.syncQueue.clear(),
+          financeDb.settings.delete("lastPulledAt"),
+        ]);
+      }
+
+      await financeDb.settings.put({
+        key: "currentUserId",
+        value: userId,
+        updatedAt: timestamp,
+      });
+    },
+  );
 }
 
 export async function getMonthlyBudgetSetting() {
@@ -142,176 +141,4 @@ export async function setLastPulledAt(value: string) {
 export async function resetOfflineDatabaseForTests() {
   await financeDb.delete();
   await financeDb.open();
-}
-
-function shouldSeedDevelopmentData() {
-  if (!import.meta.env.DEV) {
-    return false;
-  }
-
-  if (typeof window === "undefined") {
-    return true;
-  }
-
-  return !window.localStorage.getItem("financial_management_auth_token");
-}
-
-function createInitialTransactions(timestamp: string): Transaction[] {
-  const now = new Date();
-  const isoDaysAgo = (days: number) => {
-    const date = new Date(now);
-    date.setDate(now.getDate() - days);
-    return date.toISOString();
-  };
-
-  return [
-    {
-      id: "seed-tx-001",
-      type: "income",
-      amount: 32000,
-      categoryId: "salary",
-      categoryName: "Sueldo",
-      paymentMethod: "transfer",
-      transactionDate: isoDaysAgo(9),
-      note: "Nómina mensual",
-      syncStatus: "synced",
-      clientCreatedAt: isoDaysAgo(9),
-      clientUpdatedAt: isoDaysAgo(9),
-      serverUpdatedAt: timestamp,
-      createdAt: isoDaysAgo(9),
-      updatedAt: isoDaysAgo(9),
-    },
-    {
-      id: "seed-tx-002",
-      type: "expense",
-      amount: 1240,
-      categoryId: "food",
-      categoryName: "Comida",
-      paymentMethod: "debit_card",
-      transactionDate: isoDaysAgo(2),
-      note: "Super y despensa",
-      syncStatus: "synced",
-      clientCreatedAt: isoDaysAgo(2),
-      clientUpdatedAt: isoDaysAgo(2),
-      serverUpdatedAt: timestamp,
-      createdAt: isoDaysAgo(2),
-      updatedAt: isoDaysAgo(2),
-    },
-    {
-      id: "seed-tx-003",
-      type: "expense",
-      amount: 680,
-      categoryId: "transport",
-      categoryName: "Transporte",
-      paymentMethod: "credit_card",
-      transactionDate: isoDaysAgo(3),
-      syncStatus: "synced",
-      clientCreatedAt: isoDaysAgo(3),
-      clientUpdatedAt: isoDaysAgo(3),
-      serverUpdatedAt: timestamp,
-      createdAt: isoDaysAgo(3),
-      updatedAt: isoDaysAgo(3),
-    },
-    {
-      id: "seed-tx-004",
-      type: "income",
-      amount: 4200,
-      categoryId: "freelance",
-      categoryName: "Freelance",
-      paymentMethod: "transfer",
-      transactionDate: isoDaysAgo(5),
-      note: "Proyecto corto",
-      syncStatus: "synced",
-      clientCreatedAt: isoDaysAgo(5),
-      clientUpdatedAt: isoDaysAgo(5),
-      serverUpdatedAt: timestamp,
-      createdAt: isoDaysAgo(5),
-      updatedAt: isoDaysAgo(5),
-    },
-    {
-      id: "seed-tx-005",
-      type: "expense",
-      amount: 299,
-      categoryId: "subscriptions",
-      categoryName: "Suscripciones",
-      paymentMethod: "credit_card",
-      transactionDate: isoDaysAgo(1),
-      note: "Música",
-      syncStatus: "synced",
-      clientCreatedAt: isoDaysAgo(1),
-      clientUpdatedAt: isoDaysAgo(1),
-      serverUpdatedAt: timestamp,
-      createdAt: isoDaysAgo(1),
-      updatedAt: isoDaysAgo(1),
-    },
-  ];
-}
-
-function createInitialFixedExpenses(timestamp: string): FixedExpense[] {
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  const activeFromMonth = monthStart.toISOString().slice(0, 10);
-
-  return [
-    {
-      id: "seed-fixed-001",
-      name: "Renta",
-      amount: 8500,
-      categoryId: "home",
-      categoryName: "Casa",
-      paymentMethod: "transfer",
-      recurrence: "monthly",
-      paymentWindowStartDay: 1,
-      paymentWindowEndDay: 5,
-      activeFromMonth,
-      includeInForecast: true,
-      isActive: true,
-      syncStatus: "synced",
-      clientCreatedAt: timestamp,
-      clientUpdatedAt: timestamp,
-      serverUpdatedAt: timestamp,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-    {
-      id: "seed-fixed-002",
-      name: "Internet",
-      amount: 599,
-      categoryId: "home",
-      categoryName: "Casa",
-      paymentMethod: "debit_card",
-      recurrence: "monthly",
-      paymentWindowStartDay: 10,
-      paymentWindowEndDay: 15,
-      activeFromMonth,
-      includeInForecast: true,
-      isActive: true,
-      syncStatus: "synced",
-      clientCreatedAt: timestamp,
-      clientUpdatedAt: timestamp,
-      serverUpdatedAt: timestamp,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-    {
-      id: "seed-fixed-003",
-      name: "Streaming",
-      amount: 249,
-      categoryId: "subscriptions",
-      categoryName: "Suscripciones",
-      paymentMethod: "credit_card",
-      recurrence: "monthly",
-      paymentWindowStartDay: 20,
-      paymentWindowEndDay: 22,
-      activeFromMonth,
-      includeInForecast: true,
-      isActive: true,
-      syncStatus: "synced",
-      clientCreatedAt: timestamp,
-      clientUpdatedAt: timestamp,
-      serverUpdatedAt: timestamp,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-  ];
 }

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { apiClient, AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
+import { prepareOfflineCacheForUser } from "@/lib/offline/db";
 import {
   getLinkedAccounts,
   linkApple as linkAppleAccount,
@@ -64,6 +65,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthLoading: true });
     try {
       const result = await apiClient.post<AuthResponse>("/v1/auth/login", input);
+      await prepareOfflineCacheForUser(result.user.id);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -75,6 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthLoading: true });
     try {
       const result = await apiClient.post<AuthResponse>("/v1/auth/register", input);
+      await prepareOfflineCacheForUser(result.user.id);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -86,6 +89,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthLoading: true });
     try {
       const result = await loginWithGoogleIdToken(idToken);
+      await prepareOfflineCacheForUser(result.user.id);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -97,6 +101,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthLoading: true });
     try {
       const result = await loginWithSupabaseGoogleAccessToken(accessToken);
+      await prepareOfflineCacheForUser(result.user.id);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -108,6 +113,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthLoading: true });
     try {
       const result = await loginWithAppleIdToken(idToken, input);
+      await prepareOfflineCacheForUser(result.user.id);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -119,6 +125,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthLoading: true });
     try {
       const result = await linkGoogleAccount(idToken);
+      await prepareOfflineCacheForUser(result.user.id);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -130,6 +137,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthLoading: true });
     try {
       const result = await linkSupabaseGoogleAccount(accessToken);
+      await prepareOfflineCacheForUser(result.user.id);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -141,6 +149,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthLoading: true });
     try {
       const result = await linkAppleAccount(idToken, input);
+      await prepareOfflineCacheForUser(result.user.id);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -175,6 +184,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ token, isAuthLoading: true });
     try {
       const result = await apiClient.get<Omit<AuthResponse, "token">>("/v1/auth/me");
+      await prepareOfflineCacheForUser(result.user.id);
       set({
         token,
         user: result.user,

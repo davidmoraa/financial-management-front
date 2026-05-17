@@ -154,6 +154,16 @@ export async function mergeRemoteTransaction(remote: Omit<Transaction, "syncStat
   return local;
 }
 
+export async function cacheRemoteTransactions(remotes: Array<Omit<Transaction, "syncStatus">>) {
+  const transactions: Transaction[] = remotes.map((remote) => ({
+    ...remote,
+    syncStatus: "synced",
+  }));
+
+  await financeDb.transactions.bulkPut(transactions);
+  return transactions;
+}
+
 export async function markTransactionConflict(id: string) {
   await markTransactionSyncStatus(id, "conflict");
 }

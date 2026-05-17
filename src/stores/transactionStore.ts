@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { isSameMonth, parseISO } from "date-fns";
 import {
+  cacheRemoteTransactions,
   createTransaction,
   getAllTransactions,
   getRecentTransactions as getRecentTransactionsFromDb,
@@ -9,8 +10,10 @@ import {
   updateTransaction,
   type TransactionMutationInput,
 } from "@/lib/offline/transactionRepository";
+import { AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
 import { ensureOfflineDatabaseReady, getMonthlyBudgetSetting } from "@/lib/offline/db";
 import { getFailedCount, getPendingCount } from "@/lib/offline/syncQueueRepository";
+import { fetchTransactions } from "@/services/transactionsApi";
 import type { MonthlySummary, Transaction } from "@/types/finance";
 import type { TransactionFormValues } from "@/schemas/transactionSchema";
 import { useCategoryStore } from "@/stores/categoryStore";
@@ -51,6 +54,14 @@ function toMutationInput(values: TransactionFormValues): TransactionMutationInpu
 
 async function loadLocalState() {
   await ensureOfflineDatabaseReady();
+  if (canFetchRemoteData()) {
+    try {
+      await cacheRemoteTransactions(await fetchTransactions());
+    } catch {
+      // Keep the last local cache available for offline/error states.
+    }
+  }
+
   const [transactions, monthlyBudget, pendingSyncCount, failedSyncCount] = await Promise.all([
     getAllTransactions(),
     getMonthlyBudgetSetting(),
@@ -59,6 +70,14 @@ async function loadLocalState() {
   ]);
 
   return { transactions, monthlyBudget, pendingSyncCount, failedSyncCount };
+}
+
+function canFetchRemoteData() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return Boolean(window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)) && window.navigator.onLine;
 }
 
 export const useTransactionStore = create<TransactionState>((set, get) => ({
