@@ -105,6 +105,28 @@ export async function prepareOfflineCacheForUser(userId: string) {
   );
 }
 
+export async function clearLocalFinancialRecords() {
+  await financeDb.transaction(
+    "rw",
+    [
+      financeDb.transactions,
+      financeDb.fixedExpenses,
+      financeDb.fixedExpenseOccurrences,
+      financeDb.syncQueue,
+      financeDb.settings,
+    ],
+    async () => {
+      await Promise.all([
+        financeDb.transactions.clear(),
+        financeDb.fixedExpenses.clear(),
+        financeDb.fixedExpenseOccurrences.clear(),
+        financeDb.syncQueue.clear(),
+        financeDb.settings.delete("lastPulledAt"),
+      ]);
+    },
+  );
+}
+
 export async function getMonthlyBudgetSetting() {
   const setting = await financeDb.settings.get("monthlyBudget");
   return typeof setting?.value === "number" ? setting.value : 15000;

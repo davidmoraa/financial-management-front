@@ -1,6 +1,7 @@
 import { Apple, Bell, CalendarClock, Chrome, CircleDollarSign, DatabaseZap, Link2Off, LogOut, RefreshCw, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { AppConfirmDialog } from "@/components/feedback/AppConfirmDialog";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
@@ -23,11 +24,14 @@ export function SettingsPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
   const [providerError, setProviderError] = useState<string | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = () => {
-    if (pendingSyncCount > 0 && !window.confirm("Tienes movimientos pendientes de sincronizar. ¿Cerrar sesión de todos modos?")) {
+    if (pendingSyncCount > 0) {
+      setShowLogoutConfirm(true);
       return;
     }
+
     logout();
   };
 
@@ -156,6 +160,20 @@ export function SettingsPage() {
         )}
         {providerError && <p className="mt-3 text-sm font-semibold text-red-600">{providerError}</p>}
       </Card>
+      <AppConfirmDialog
+        open={showLogoutConfirm}
+        eyebrow="Pendientes de sincronizar"
+        title="¿Cerrar sesión de todos modos?"
+        description="Tienes movimientos pendientes de sincronizar. Si cierras sesión ahora, seguirán guardados en este dispositivo para sincronizarse más adelante."
+        confirmLabel="Cerrar sesión"
+        cancelLabel="Seguir aquí"
+        tone="warning"
+        onCancel={() => setShowLogoutConfirm(false)}
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          logout();
+        }}
+      />
     </div>
   );
 }

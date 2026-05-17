@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, CalendarClock, Plus } from "lucide-react";
+import { AppConfirmDialog } from "@/components/feedback/AppConfirmDialog";
 import { FixedExpenseCard } from "@/components/fixed-expenses/FixedExpenseCard";
 import { FixedExpenseForm } from "@/components/fixed-expenses/FixedExpenseForm";
 import { MarkFixedExpensePaidDialog } from "@/components/fixed-expenses/MarkFixedExpensePaidDialog";
@@ -23,6 +24,8 @@ export function FixedExpensesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingFixedExpense, setEditingFixedExpense] = useState<FixedExpense | undefined>();
   const [payingFixedExpense, setPayingFixedExpense] = useState<FixedExpense | null>(null);
+  const [deletingFixedExpense, setDeletingFixedExpense] = useState<FixedExpense | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const forecast = useMemo(
     () =>
@@ -47,10 +50,15 @@ export function FixedExpensesPage() {
     });
   };
 
-  const handleDelete = async (fixedExpense: FixedExpense) => {
-    if (window.confirm(`¿Eliminar ${fixedExpense.name}?`)) {
-      await deleteFixedExpense(fixedExpense.id);
+  const confirmDelete = async () => {
+    if (!deletingFixedExpense) {
+      return;
     }
+
+    setIsDeleting(true);
+    await deleteFixedExpense(deletingFixedExpense.id);
+    setIsDeleting(false);
+    setDeletingFixedExpense(null);
   };
 
   return (
@@ -113,13 +121,24 @@ export function FixedExpensesPage() {
                 setEditingFixedExpense(fixedExpense);
                 setShowForm(true);
               }}
-              onDelete={handleDelete}
+              onDelete={setDeletingFixedExpense}
             />
           ))
         )}
       </section>
 
       <MarkFixedExpensePaidDialog fixedExpense={payingFixedExpense} targetMonth={currentDate} onClose={() => setPayingFixedExpense(null)} />
+      <AppConfirmDialog
+        open={Boolean(deletingFixedExpense)}
+        eyebrow="Eliminar gasto fijo"
+        title={`¿Eliminar ${deletingFixedExpense?.name ?? "este gasto fijo"}?`}
+        description="Se eliminará de tus gastos fijos y dejará de considerarse en las proyecciones. Esta acción se sincronizará con tu cuenta cuando haya conexión."
+        confirmLabel="Eliminar gasto fijo"
+        cancelLabel="Cancelar"
+        isConfirming={isDeleting}
+        onCancel={() => setDeletingFixedExpense(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }
