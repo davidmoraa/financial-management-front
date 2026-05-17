@@ -27,3 +27,13 @@ The following mocks/examples are allowed as test fixtures and must not be import
 ## Runtime Rule
 
 Runtime code under `src/pages`, `src/stores`, `src/services`, `src/lib/offline` and `src/lib/remote` must not import mock data files. Test fixtures may live under `src/test/fixtures`.
+
+## Applied Changes
+
+- Removed runtime financial seed generation from `src/lib/offline/db.ts`.
+- Converted Dexie into cache/sync storage for real API data and pending local mutations.
+- Added `currentUserId` cache metadata so switching authenticated users clears sensitive cached financial data.
+- Replaced frontend category defaults with authenticated `GET /v1/categories` hydration plus Dexie cache.
+- Added API services for transactions, fixed expenses, dashboard summary and categories.
+- Added real empty states for dashboard, history, categories and fixed expenses.
+- Added tests that verify API client bearer auth, 401 handling, empty dashboard state, fixed expenses empty state and no runtime imports from mock/fixture modules.

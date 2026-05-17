@@ -6,6 +6,28 @@ import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 
 describe("DashboardPage", () => {
+  it("muestra empty state real cuando no hay datos", () => {
+    useTransactionStore.setState({
+      transactions: [],
+      monthlyBudget: 15000,
+      isHydrated: true,
+    });
+    useFixedExpenseStore.setState({
+      fixedExpenses: [],
+      occurrences: [],
+      isHydrated: true,
+    });
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Aún no tienes movimientos registrados.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /registrar primer movimiento/i })).toBeInTheDocument();
+  });
+
   it("muestra gastos fijos pendientes", () => {
     useTransactionStore.setState({
       transactions: [],
