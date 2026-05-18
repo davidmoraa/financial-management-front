@@ -11,7 +11,8 @@ export type AuthProfile = {
   userId: string;
   displayName?: string | null;
   currency: string;
-  monthlyBudget: number;
+  monthlyBudget: number | null;
+  monthlyBudgetConfiguredAt?: string | null;
 };
 
 export type LinkedProvider = {

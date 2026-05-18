@@ -47,15 +47,6 @@ export async function ensureOfflineDatabaseReady() {
   const timestamp = nowIso();
 
   await financeDb.transaction("rw", financeDb.settings, async () => {
-    const budget = await financeDb.settings.get("monthlyBudget");
-    if (!budget) {
-      await financeDb.settings.put({
-        key: "monthlyBudget",
-        value: 15000,
-        updatedAt: timestamp,
-      });
-    }
-
     const currency = await financeDb.settings.get("currency");
     if (!currency) {
       await financeDb.settings.put({
@@ -93,6 +84,7 @@ export async function prepareOfflineCacheForUser(userId: string) {
           financeDb.categories.clear(),
           financeDb.syncQueue.clear(),
           financeDb.settings.delete("lastPulledAt"),
+          financeDb.settings.delete("monthlyBudget"),
         ]);
       }
 
@@ -129,7 +121,15 @@ export async function clearLocalFinancialRecords() {
 
 export async function getMonthlyBudgetSetting() {
   const setting = await financeDb.settings.get("monthlyBudget");
-  return typeof setting?.value === "number" ? setting.value : 15000;
+  return typeof setting?.value === "number" ? setting.value : 0;
+}
+
+export async function setMonthlyBudgetSetting(value: number) {
+  await financeDb.settings.put({
+    key: "monthlyBudget",
+    value,
+    updatedAt: nowIso(),
+  });
 }
 
 export async function getOrCreateDeviceId() {

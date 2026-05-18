@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { apiClient, AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
-import { prepareOfflineCacheForUser } from "@/lib/offline/db";
+import { prepareOfflineCacheForUser, setMonthlyBudgetSetting } from "@/lib/offline/db";
 import {
   getLinkedAccounts,
   linkApple as linkAppleAccount,
@@ -16,6 +16,8 @@ import {
   type AuthUser,
   type LinkedProvider,
 } from "@/lib/api/oauthApi";
+import { updateProfile } from "@/services/profileApi";
+import { useTransactionStore } from "@/stores/transactionStore";
 
 type AuthState = {
   token: string | null;
@@ -33,6 +35,7 @@ type AuthState = {
   linkSupabaseGoogle: (accessToken: string) => Promise<void>;
   linkApple: (idToken: string, input?: { displayName?: string; nonce?: string }) => Promise<void>;
   unlinkProvider: (provider: Exclude<AuthProvider, "password">) => Promise<void>;
+  updateMonthlyBudget: (monthlyBudget: number) => Promise<void>;
   refreshLinkedProviders: () => Promise<void>;
   logout: () => void;
   loadSession: () => Promise<void>;
@@ -66,6 +69,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const result = await apiClient.post<AuthResponse>("/v1/auth/login", input);
       await prepareOfflineCacheForUser(result.user.id);
+      await syncProfileBudget(result.profile);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -78,6 +82,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const result = await apiClient.post<AuthResponse>("/v1/auth/register", input);
       await prepareOfflineCacheForUser(result.user.id);
+      await syncProfileBudget(result.profile);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -90,6 +95,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const result = await loginWithGoogleIdToken(idToken);
       await prepareOfflineCacheForUser(result.user.id);
+      await syncProfileBudget(result.profile);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -102,6 +108,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const result = await loginWithSupabaseGoogleAccessToken(accessToken);
       await prepareOfflineCacheForUser(result.user.id);
+      await syncProfileBudget(result.profile);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -114,6 +121,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const result = await loginWithAppleIdToken(idToken, input);
       await prepareOfflineCacheForUser(result.user.id);
+      await syncProfileBudget(result.profile);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -126,6 +134,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const result = await linkGoogleAccount(idToken);
       await prepareOfflineCacheForUser(result.user.id);
+      await syncProfileBudget(result.profile);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -138,6 +147,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const result = await linkSupabaseGoogleAccount(accessToken);
       await prepareOfflineCacheForUser(result.user.id);
+      await syncProfileBudget(result.profile);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -150,6 +160,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const result = await linkAppleAccount(idToken, input);
       await prepareOfflineCacheForUser(result.user.id);
+      await syncProfileBudget(result.profile);
       storeToken(result.token);
       setAuthResult(set, result);
     } catch (error) {
@@ -165,6 +176,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     const result = await unlinkRemoteProvider(provider);
     set({ linkedProviders: result.linkedProviders });
+  },
+  updateMonthlyBudget: async (monthlyBudget) => {
+    set({ isAuthLoading: true });
+    try {
+      const result = await updateProfile({ monthlyBudget });
+      await syncProfileBudget(result.profile);
+      set({
+        user: result.user,
+        profile: result.profile,
+        linkedProviders: result.linkedProviders ?? [],
+        isAuthenticated: true,
+        isAuthLoading: false,
+      });
+    } catch (error) {
+      set({ isAuthLoading: false });
+      throw error;
+    }
   },
   refreshLinkedProviders: async () => {
     const result = await getLinkedAccounts();
@@ -185,6 +213,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const result = await apiClient.get<Omit<AuthResponse, "token">>("/v1/auth/me");
       await prepareOfflineCacheForUser(result.user.id);
+      await syncProfileBudget(result.profile);
       set({
         token,
         user: result.user,
@@ -199,6 +228,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 }));
+
+async function syncProfileBudget(profile?: AuthProfile | null) {
+  if (typeof profile?.monthlyBudget !== "number") {
+    await setMonthlyBudgetSetting(0);
+    useTransactionStore.setState({ monthlyBudget: 0 });
+    return;
+  }
+
+  await setMonthlyBudgetSetting(profile.monthlyBudget);
+  useTransactionStore.setState({ monthlyBudget: profile.monthlyBudget });
+}
 
 function setAuthResult(set: (state: Partial<AuthState>) => void, result: AuthResponse) {
   set({

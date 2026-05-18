@@ -143,7 +143,7 @@ export function getBudgetWarnings(forecast: MonthlyForecast, monthlyBudget: numb
     }
   }
 
-  if (forecast.projectedMonthEndExpenses > monthlyBudget) {
+  if (monthlyBudget > 0 && forecast.projectedMonthEndExpenses > monthlyBudget) {
     warnings.push({
       id: "projected-budget-exceeded",
       type: "projected_budget_exceeded",
@@ -173,7 +173,7 @@ export function getBudgetWarnings(forecast: MonthlyForecast, monthlyBudget: numb
     });
   }
 
-  if (forecast.remainingAfterPendingFixed < 0) {
+  if (monthlyBudget > 0 && forecast.remainingAfterPendingFixed < 0) {
     warnings.push({
       id: "budget-after-fixed-negative",
       type: "budget_after_fixed_negative",

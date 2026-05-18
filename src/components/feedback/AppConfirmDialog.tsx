@@ -49,19 +49,31 @@ export function AppConfirmDialog({
           )}
         />
         <div className="p-5 sm:p-6">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <MoneyFluxLogo size="sm" className="h-8 w-8 rounded-xl shadow-none ring-1 ring-slate-100" />
+              <span className="truncate text-sm font-bold text-slate-950">Money Flux</span>
+            </div>
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em]",
+                isDanger ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700",
+              )}
+            >
+              {eyebrow}
+            </span>
+          </div>
           <div className="flex items-start gap-3">
             <div
               className={cn(
-                "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ring-1",
+                "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ring-1",
                 isDanger ? "bg-red-50 text-red-700 ring-red-100" : "bg-amber-50 text-amber-700 ring-amber-100",
               )}
             >
-              <MoneyFluxLogo size="sm" className="absolute -right-2 -top-2 h-6 w-6 rounded-lg shadow-none ring-2 ring-white" />
               <TriangleAlert className="h-6 w-6" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <p className={cn("text-xs font-bold uppercase tracking-[0.12em]", isDanger ? "text-red-700" : "text-amber-700")}>{eyebrow}</p>
-              <h2 id="app-confirm-title" className="mt-1 text-lg font-bold leading-6 text-slate-950">
+              <h2 id="app-confirm-title" className="text-lg font-bold leading-6 text-slate-950">
                 {title}
               </h2>
               <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{description}</p>

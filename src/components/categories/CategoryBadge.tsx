@@ -55,7 +55,7 @@ export function CategoryBadge({ category, selected, className }: CategoryBadgePr
       )}
     >
       <CategoryIcon category={category} />
-      {category.name}
+      <span className="min-w-0 truncate">{category.name}</span>
     </span>
   );
 }

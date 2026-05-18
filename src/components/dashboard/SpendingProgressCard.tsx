@@ -11,6 +11,25 @@ type SpendingProgressCardProps = {
 };
 
 export function SpendingProgressCard({ expense, budget, percentage }: SpendingProgressCardProps) {
+  if (budget <= 0) {
+    return (
+      <Card className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground">Presupuesto mensual</p>
+            <p className="mt-1 text-2xl font-bold tracking-normal text-foreground">Sin configurar</p>
+          </div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-lime-100 text-lime-700">
+            <Target className="h-5 w-5" aria-hidden="true" />
+          </div>
+        </div>
+        <p className="mt-4 rounded-2xl bg-teal-50 px-4 py-3 text-sm font-semibold leading-6 text-teal-800">
+          Define tu presupuesto mensual para ver avance, diferencia y ritmo del mes.
+        </p>
+      </Card>
+    );
+  }
+
   const isOver = percentage > 100;
   const isWarning = percentage >= 80 && !isOver;
   const Icon = isOver || isWarning ? AlertTriangle : BadgeCheck;

@@ -74,7 +74,7 @@ export function SettingsPage() {
         </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <SettingRow icon={CircleDollarSign} label="Presupuesto mensual" value={formatCurrency(monthlyBudget)} />
+          <SettingRow icon={CircleDollarSign} label="Presupuesto mensual" value={monthlyBudget > 0 ? formatCurrency(monthlyBudget) : "Sin configurar"} />
           <SettingRow icon={CircleDollarSign} label="Moneda" value="MXN" />
           <SettingRow icon={Wallet} label="Sesión" value={isAuthenticated ? user?.email ?? "Activa" : "Sin sesión"} />
         </div>

@@ -10,6 +10,25 @@ type BudgetForecastCardProps = {
 };
 
 export function BudgetForecastCard({ monthlyBudget, forecast }: BudgetForecastCardProps) {
+  if (monthlyBudget <= 0) {
+    return (
+      <Card className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-normal text-primary">Proyección mensual</p>
+            <h2 className="mt-1 text-xl font-bold tracking-normal text-foreground">Presupuesto pendiente</h2>
+          </div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-lime-100 text-lime-700">
+            <Gauge className="h-5 w-5" aria-hidden="true" />
+          </div>
+        </div>
+        <p className="mt-4 rounded-2xl bg-teal-50 px-4 py-3 text-sm font-semibold leading-6 text-teal-800">
+          Al configurar tu presupuesto mensual, Money Flux calculará proyección de cierre, restante estimado y gasto diario seguro.
+        </p>
+      </Card>
+    );
+  }
+
   const remaining = monthlyBudget - forecast.projectedMonthEndExpenses;
 
   return (

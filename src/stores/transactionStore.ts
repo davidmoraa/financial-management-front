@@ -82,7 +82,7 @@ function canFetchRemoteData() {
 
 export const useTransactionStore = create<TransactionState>((set, get) => ({
   transactions: [],
-  monthlyBudget: 15000,
+  monthlyBudget: 0,
   isHydrated: false,
   isHydrating: false,
   isSyncing: false,

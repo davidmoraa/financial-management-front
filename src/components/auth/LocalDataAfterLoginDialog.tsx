@@ -10,7 +10,8 @@ import { useAuthStore } from "@/stores/authStore";
 import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 
-const DISMISSED_KEY = "financial_management_local_data_dialog_dismissed";
+export const LOCAL_DATA_DIALOG_DISMISSED_KEY = "financial_management_local_data_dialog_dismissed";
+export const LOCAL_DATA_DIALOG_DISMISSED_EVENT = "financial-management:local-data-dialog-dismissed";
 
 export function LocalDataAfterLoginDialog() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -20,7 +21,7 @@ export function LocalDataAfterLoginDialog() {
   const [isDiscarding, setIsDiscarding] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated || window.sessionStorage.getItem(DISMISSED_KEY) === "true") {
+    if (!isAuthenticated || window.sessionStorage.getItem(LOCAL_DATA_DIALOG_DISMISSED_KEY) === "true") {
       return;
     }
 
@@ -41,7 +42,8 @@ export function LocalDataAfterLoginDialog() {
   }
 
   const close = () => {
-    window.sessionStorage.setItem(DISMISSED_KEY, "true");
+    window.sessionStorage.setItem(LOCAL_DATA_DIALOG_DISMISSED_KEY, "true");
+    window.dispatchEvent(new CustomEvent(LOCAL_DATA_DIALOG_DISMISSED_EVENT));
     setIsVisible(false);
   };
 
@@ -71,6 +73,7 @@ export function LocalDataAfterLoginDialog() {
 
   return (
     <>
+      {!showDiscardConfirm && (
       <div className="fixed inset-0 z-50 flex items-end bg-slate-950/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6 backdrop-blur-[3px] sm:items-center sm:justify-center">
         <Card
           role="dialog"
@@ -126,6 +129,7 @@ export function LocalDataAfterLoginDialog() {
           </div>
         </Card>
       </div>
+      )}
       <AppConfirmDialog
         open={showDiscardConfirm}
         eyebrow="Advertencia"
@@ -141,7 +145,7 @@ export function LocalDataAfterLoginDialog() {
   );
 }
 
-async function hasLocalData() {
+export async function hasLocalData() {
   const [transactions, fixedExpenses, occurrences, pendingItems] = await Promise.all([
     financeDb.transactions.filter((transaction) => !transaction.deletedAt).count(),
     financeDb.fixedExpenses.filter((fixedExpense) => !fixedExpense.deletedAt).count(),
