@@ -6,6 +6,7 @@ import { MoneyFluxLogo } from "@/components/brand/MoneyFluxLogo";
 import { BudgetForecastCard } from "@/components/dashboard/BudgetForecastCard";
 import { BudgetWarningsCard } from "@/components/dashboard/BudgetWarningsCard";
 import { FixedExpensesThisMonth } from "@/components/dashboard/FixedExpensesThisMonth";
+import { FinancialPieChartsCard } from "@/components/dashboard/FinancialPieChartsCard";
 import { MonthlyMetricCard } from "@/components/dashboard/MonthlyMetricCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { SpendingProgressCard } from "@/components/dashboard/SpendingProgressCard";
@@ -19,6 +20,7 @@ export function DashboardPage() {
   const currentDate = useMemo(() => new Date(), []);
   const transactions = useTransactionStore((state) => state.transactions);
   const monthlyBudget = useTransactionStore((state) => state.monthlyBudget);
+  const expectedMonthlyIncome = useTransactionStore((state) => state.expectedMonthlyIncome);
   const fixedExpenses = useFixedExpenseStore((state) => state.fixedExpenses);
   const occurrences = useFixedExpenseStore((state) => state.occurrences);
   const isHydrated = useTransactionStore((state) => state.isHydrated);
@@ -34,9 +36,10 @@ export function DashboardPage() {
         fixedExpenses,
         fixedExpenseOccurrences: occurrences,
         monthlyBudget,
+        expectedMonthlyIncome,
         targetMonth: currentDate,
       }),
-    [currentDate, fixedExpenses, monthlyBudget, occurrences, transactions],
+    [currentDate, expectedMonthlyIncome, fixedExpenses, monthlyBudget, occurrences, transactions],
   );
   const hasFinancialData = transactions.some((transaction) => !transaction.deletedAt) || fixedExpenses.some((fixedExpense) => !fixedExpense.deletedAt);
 
@@ -90,7 +93,12 @@ export function DashboardPage() {
       <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <BalanceOverviewCard balance={summary.balance} />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-          <MonthlyMetricCard label="Ingresos del mes" amount={summary.income} icon={TrendingUp} variant="income" />
+          <MonthlyMetricCard
+            label={summary.expectedIncome > summary.actualIncome ? "Ingreso esperado del mes" : "Ingresos del mes"}
+            amount={summary.income}
+            icon={TrendingUp}
+            variant="income"
+          />
           <MonthlyMetricCard label="Gastos del mes" amount={summary.expense} icon={TrendingDown} variant="expense" />
         </div>
       </section>
@@ -107,6 +115,13 @@ export function DashboardPage() {
           <FixedExpensesThisMonth forecast={forecast} />
         </div>
       </section>
+
+      <FinancialPieChartsCard
+        income={summary.income}
+        actualIncome={summary.actualIncome}
+        expense={summary.expense}
+        forecast={forecast}
+      />
 
       <Link
         to="/history"

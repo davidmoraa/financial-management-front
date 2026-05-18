@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
 import { Button } from "@/components/ui/button";
 import { requestAppleIdToken } from "@/lib/oauth/browserProviders";
+import { incomeCadenceLabels } from "@/lib/finance/incomeCadence";
 import { startSupabaseGoogleOAuth } from "@/lib/oauth/supabaseGoogle";
 import { syncPendingItems } from "@/lib/offline/syncEngine";
 import { useAuthStore } from "@/stores/authStore";
@@ -18,6 +19,7 @@ export function SettingsPage() {
   const pendingSyncCount = useTransactionStore((state) => state.pendingSyncCount);
   const isSyncing = useTransactionStore((state) => state.isSyncing);
   const user = useAuthStore((state) => state.user);
+  const profile = useAuthStore((state) => state.profile);
   const linkedProviders = useAuthStore((state) => state.linkedProviders);
   const linkApple = useAuthStore((state) => state.linkApple);
   const unlinkProvider = useAuthStore((state) => state.unlinkProvider);
@@ -75,6 +77,15 @@ export function SettingsPage() {
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <SettingRow icon={CircleDollarSign} label="Presupuesto mensual" value={monthlyBudget > 0 ? formatCurrency(monthlyBudget) : "Sin configurar"} />
+          <SettingRow
+            icon={CircleDollarSign}
+            label="Ingreso esperado"
+            value={
+              typeof profile?.expectedIncomeAmount === "number" && profile.incomeCadence
+                ? `${formatCurrency(profile.expectedIncomeAmount)} ${incomeCadenceLabels[profile.incomeCadence].toLowerCase()}`
+                : "Sin configurar"
+            }
+          />
           <SettingRow icon={CircleDollarSign} label="Moneda" value="MXN" />
           <SettingRow icon={Wallet} label="Sesión" value={isAuthenticated ? user?.email ?? "Activa" : "Sin sesión"} />
         </div>

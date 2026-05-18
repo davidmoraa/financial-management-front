@@ -1,4 +1,5 @@
 export type TransactionType = "income" | "expense";
+export type IncomeCadence = "monthly" | "biweekly" | "weekly";
 
 export type SyncStatus = "synced" | "pending" | "syncing" | "failed" | "conflict";
 
@@ -39,6 +40,8 @@ export type Transaction = {
 
 export type MonthlySummary = {
   income: number;
+  actualIncome: number;
+  expectedIncome: number;
   expense: number;
   balance: number;
   budget: number;

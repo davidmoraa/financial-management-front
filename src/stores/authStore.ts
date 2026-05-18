@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { apiClient, AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
-import { prepareOfflineCacheForUser, setMonthlyBudgetSetting } from "@/lib/offline/db";
+import { prepareOfflineCacheForUser, setIncomeSettings } from "@/lib/offline/db";
+import { normalizeExpectedMonthlyIncome } from "@/lib/finance/incomeCadence";
 import {
   getLinkedAccounts,
   linkApple as linkAppleAccount,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/api/oauthApi";
 import { updateProfile } from "@/services/profileApi";
 import { useTransactionStore } from "@/stores/transactionStore";
+import type { IncomeCadence } from "@/types/finance";
 
 type AuthState = {
   token: string | null;
@@ -35,7 +37,7 @@ type AuthState = {
   linkSupabaseGoogle: (accessToken: string) => Promise<void>;
   linkApple: (idToken: string, input?: { displayName?: string; nonce?: string }) => Promise<void>;
   unlinkProvider: (provider: Exclude<AuthProvider, "password">) => Promise<void>;
-  updateMonthlyBudget: (monthlyBudget: number) => Promise<void>;
+  updateIncomeSettings: (input: { expectedIncomeAmount: number; incomeCadence: IncomeCadence; monthlyBudget?: number }) => Promise<void>;
   refreshLinkedProviders: () => Promise<void>;
   logout: () => void;
   loadSession: () => Promise<void>;
@@ -177,10 +179,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const result = await unlinkRemoteProvider(provider);
     set({ linkedProviders: result.linkedProviders });
   },
-  updateMonthlyBudget: async (monthlyBudget) => {
+  updateIncomeSettings: async (input) => {
     set({ isAuthLoading: true });
     try {
-      const result = await updateProfile({ monthlyBudget });
+      const monthlyBudget = input.monthlyBudget ?? normalizeExpectedMonthlyIncome(input.expectedIncomeAmount, input.incomeCadence);
+      const result = await updateProfile({ ...input, monthlyBudget });
       await syncProfileBudget(result.profile);
       set({
         user: result.user,
@@ -231,13 +234,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 async function syncProfileBudget(profile?: AuthProfile | null) {
   if (typeof profile?.monthlyBudget !== "number") {
-    await setMonthlyBudgetSetting(0);
-    useTransactionStore.setState({ monthlyBudget: 0 });
+    await setIncomeSettings({
+      monthlyBudget: 0,
+      expectedIncomeAmount: 0,
+      expectedMonthlyIncome: 0,
+      incomeCadence: "monthly",
+    });
+    useTransactionStore.setState({ monthlyBudget: 0, expectedMonthlyIncome: 0 });
     return;
   }
 
-  await setMonthlyBudgetSetting(profile.monthlyBudget);
-  useTransactionStore.setState({ monthlyBudget: profile.monthlyBudget });
+  const expectedIncomeAmount = profile.expectedIncomeAmount ?? profile.monthlyBudget;
+  const incomeCadence = profile.incomeCadence ?? "monthly";
+  const expectedMonthlyIncome = normalizeExpectedMonthlyIncome(expectedIncomeAmount, incomeCadence);
+  await setIncomeSettings({
+    monthlyBudget: profile.monthlyBudget,
+    expectedIncomeAmount,
+    expectedMonthlyIncome,
+    incomeCadence,
+  });
+  useTransactionStore.setState({ monthlyBudget: profile.monthlyBudget, expectedMonthlyIncome });
 }
 
 function setAuthResult(set: (state: Partial<AuthState>) => void, result: AuthResponse) {

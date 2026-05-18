@@ -2,7 +2,16 @@ import Dexie, { type Table } from "dexie";
 import type { Category, SyncQueueItem, Transaction } from "@/types/finance";
 import type { FixedExpense, FixedExpenseOccurrence } from "@/types/fixedExpenses";
 
-export type FinanceSettingKey = "monthlyBudget" | "currency" | "initialSeedComplete" | "deviceId" | "lastPulledAt" | "currentUserId";
+export type FinanceSettingKey =
+  | "monthlyBudget"
+  | "expectedIncomeAmount"
+  | "incomeCadence"
+  | "expectedMonthlyIncome"
+  | "currency"
+  | "initialSeedComplete"
+  | "deviceId"
+  | "lastPulledAt"
+  | "currentUserId";
 
 export type FinanceSetting = {
   key: FinanceSettingKey;
@@ -85,6 +94,9 @@ export async function prepareOfflineCacheForUser(userId: string) {
           financeDb.syncQueue.clear(),
           financeDb.settings.delete("lastPulledAt"),
           financeDb.settings.delete("monthlyBudget"),
+          financeDb.settings.delete("expectedIncomeAmount"),
+          financeDb.settings.delete("expectedMonthlyIncome"),
+          financeDb.settings.delete("incomeCadence"),
         ]);
       }
 
@@ -130,6 +142,26 @@ export async function setMonthlyBudgetSetting(value: number) {
     value,
     updatedAt: nowIso(),
   });
+}
+
+export async function getExpectedMonthlyIncomeSetting() {
+  const setting = await financeDb.settings.get("expectedMonthlyIncome");
+  return typeof setting?.value === "number" ? setting.value : 0;
+}
+
+export async function setIncomeSettings(input: {
+  monthlyBudget: number;
+  expectedIncomeAmount: number;
+  expectedMonthlyIncome: number;
+  incomeCadence: string;
+}) {
+  const updatedAt = nowIso();
+  await financeDb.settings.bulkPut([
+    { key: "monthlyBudget", value: input.monthlyBudget, updatedAt },
+    { key: "expectedIncomeAmount", value: input.expectedIncomeAmount, updatedAt },
+    { key: "expectedMonthlyIncome", value: input.expectedMonthlyIncome, updatedAt },
+    { key: "incomeCadence", value: input.incomeCadence, updatedAt },
+  ]);
 }
 
 export async function getOrCreateDeviceId() {

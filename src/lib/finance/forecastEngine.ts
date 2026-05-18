@@ -20,6 +20,7 @@ type MonthlyForecastInput = {
   fixedExpenses: FixedExpense[];
   fixedExpenseOccurrences: FixedExpenseOccurrence[];
   monthlyBudget: number;
+  expectedMonthlyIncome?: number;
   targetMonth: Date;
   today?: Date;
 };
@@ -30,6 +31,7 @@ export function getMonthlyForecast(input: MonthlyForecastInput): MonthlyForecast
     (transaction) => !transaction.deletedAt && isSameMonth(parseISO(transaction.transactionDate), input.targetMonth),
   );
   const actualIncome = sum(monthTransactions.filter((transaction) => transaction.type === "income"));
+  const incomeBasis = Math.max(actualIncome, input.expectedMonthlyIncome ?? 0);
   const expenseTransactions = monthTransactions.filter((transaction) => transaction.type === "expense");
   const actualExpenses = sum(expenseTransactions);
   const activeFixedExpenses = getFixedExpensesForMonth(input.fixedExpenses, input.targetMonth);
@@ -51,7 +53,7 @@ export function getMonthlyForecast(input: MonthlyForecastInput): MonthlyForecast
     .reduce((total, item) => total + item.fixedExpense.amount, 0);
   const projectedVariableExpenses = projectVariableExpenses(actualVariableExpenses, input.targetMonth, today);
   const projectedMonthEndExpenses = actualFixedExpensesPaid + pendingFixedExpenses + projectedVariableExpenses;
-  const projectedBalance = actualIncome - projectedMonthEndExpenses;
+  const projectedBalance = incomeBasis - projectedMonthEndExpenses;
   const remainingAfterPendingFixed = input.monthlyBudget - actualExpenses - pendingFixedExpenses;
   const safeDailySpend = getSafeDailySpend({
     monthlyBudget: input.monthlyBudget,
@@ -63,7 +65,7 @@ export function getMonthlyForecast(input: MonthlyForecastInput): MonthlyForecast
   const budgetUsedPercentage = input.monthlyBudget > 0 ? Math.round((projectedMonthEndExpenses / input.monthlyBudget) * 100) : 0;
 
   const forecast: MonthlyForecast = {
-    actualIncome,
+    actualIncome: incomeBasis,
     actualExpenses,
     actualFixedExpensesPaid,
     actualVariableExpenses,

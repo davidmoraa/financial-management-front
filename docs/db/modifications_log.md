@@ -2,6 +2,42 @@
 
 This document tracks all changes made to database schema or persistence behavior, including the executed SQL queries and the rationale behind them.
 
+## [2026-05-18] Income Cadence Forecast
+
+**Status:**
+- Frontend does not execute SQL
+- Frontend does not connect directly to PostgreSQL or Supabase
+- Local IndexedDB settings cache extended
+- Remote migration executed from sibling API repo
+
+**Rationale:**
+- Dashboard planning needs expected income even before the user records a real income transaction.
+- Users can receive income monthly, biweekly or weekly.
+
+**Frontend persistence impact:**
+- No IndexedDB version change
+- Added local `settings` keys:
+  - `expectedIncomeAmount`
+  - `incomeCadence`
+  - `expectedMonthlyIncome`
+- `monthlyBudget` remains a local planning value derived from income cadence.
+
+**Remote schema impact:**
+- See API repo docs:
+  - `../financial-management-api/docs/db/schema.md`
+  - `../financial-management-api/docs/db/modifications_log.md`
+  - `../financial-management-api/docs/db/procedures_log.md`
+
+**Procedures executed:**
+- None from the frontend repo
+- Supabase migration executed from `../financial-management-api`
+
+**Remote migration executed from API repo:**
+
+```txt
+../financial-management-api/supabase/migrations/20260518193000_income_cadence_profile.sql
+```
+
 ## [2026-05-16] OAuth Social Auth
 
 **Status:**

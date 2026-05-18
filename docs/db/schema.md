@@ -25,6 +25,19 @@ settings
 syncQueue
 ```
 
+Important local `settings` keys:
+
+```txt
+monthlyBudget
+expectedIncomeAmount
+incomeCadence
+expectedMonthlyIncome
+currency
+deviceId
+lastPulledAt
+currentUserId
+```
+
 Remote schema reference:
 
 ```txt

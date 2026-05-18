@@ -12,10 +12,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { incomeCadenceLabels, normalizeExpectedMonthlyIncome } from "@/lib/finance/incomeCadence";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
+import type { IncomeCadence } from "@/types/finance";
 
 const budgetSetupSchema = z.object({
-  monthlyBudget: z.coerce.number().positive("Ingresa un monto mayor a cero."),
+  expectedIncomeAmount: z.coerce.number().positive("Ingresa un monto mayor a cero."),
+  incomeCadence: z.enum(["monthly", "biweekly", "weekly"]),
 });
 
 type BudgetSetupValues = z.infer<typeof budgetSetupSchema>;
@@ -25,24 +29,27 @@ export function MonthlyBudgetSetupDialog() {
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
-  const updateMonthlyBudget = useAuthStore((state) => state.updateMonthlyBudget);
+  const updateIncomeSettings = useAuthStore((state) => state.updateIncomeSettings);
   const [canShow, setCanShow] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<BudgetSetupValues>({
     resolver: zodResolver(budgetSetupSchema),
-    defaultValues: { monthlyBudget: undefined as unknown as number },
+    defaultValues: { expectedIncomeAmount: undefined as unknown as number, incomeCadence: "monthly" },
   });
+  const selectedCadence = watch("incomeCadence");
 
   const shouldPrompt =
     isAuthenticated &&
     Boolean(user) &&
     !isAuthLoading &&
-    (typeof profile?.monthlyBudget !== "number" || profile.monthlyBudget <= 0);
+    (typeof profile?.expectedIncomeAmount !== "number" || profile.expectedIncomeAmount <= 0);
 
   useEffect(() => {
     if (!shouldPrompt) {
@@ -77,9 +84,13 @@ export function MonthlyBudgetSetupDialog() {
   const onSubmit = async (values: BudgetSetupValues) => {
     setSubmitError(null);
     try {
-      await updateMonthlyBudget(values.monthlyBudget);
+      await updateIncomeSettings({
+        expectedIncomeAmount: values.expectedIncomeAmount,
+        incomeCadence: values.incomeCadence,
+        monthlyBudget: normalizeExpectedMonthlyIncome(values.expectedIncomeAmount, values.incomeCadence),
+      });
     } catch {
-      setSubmitError("No pudimos guardar el presupuesto. Revisa tu conexión e intenta de nuevo.");
+      setSubmitError("No pudimos guardar tu ingreso esperado. Revisa tu conexión e intenta de nuevo.");
     }
   };
 
@@ -98,10 +109,10 @@ export function MonthlyBudgetSetupDialog() {
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Primer ajuste</p>
               <h2 id="budget-setup-title" className="mt-1 text-xl font-bold leading-7 text-slate-950">
-                Define tu presupuesto mensual
+                Define tu ingreso esperado
               </h2>
               <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
-                Lo usaremos para calcular proyecciones, gasto diario seguro y advertencias útiles desde tus datos reales.
+                Lo usaremos para calcular balance, presupuesto disponible y ritmo seguro según cómo recibes dinero.
               </p>
             </div>
           </div>
@@ -109,7 +120,7 @@ export function MonthlyBudgetSetupDialog() {
           <div className="mt-5 rounded-3xl border border-teal-100 bg-teal-50/75 p-4">
             <Label htmlFor="monthly-budget" className="flex items-center justify-center gap-2 text-sm font-bold text-primary">
               <WalletCards className="h-4 w-4" aria-hidden="true" />
-              Presupuesto mensual en MXN
+              Ingreso por periodo en MXN
             </Label>
             <div className="mt-3 flex items-center rounded-[1.35rem] border border-teal-100 bg-white px-4 shadow-soft focus-within:border-primary focus-within:ring-4 focus-within:ring-teal-100">
               <span className="text-2xl font-bold text-slate-500">$</span>
@@ -121,10 +132,30 @@ export function MonthlyBudgetSetupDialog() {
                 inputMode="decimal"
                 placeholder="0"
                 className="h-16 border-0 bg-transparent text-center text-4xl font-bold shadow-none focus-visible:ring-0"
-                {...register("monthlyBudget")}
+                {...register("expectedIncomeAmount")}
               />
             </div>
-            {errors.monthlyBudget && <p className="mt-2 text-center text-sm font-semibold text-red-600">{errors.monthlyBudget.message}</p>}
+            {errors.expectedIncomeAmount && <p className="mt-2 text-center text-sm font-semibold text-red-600">{errors.expectedIncomeAmount.message}</p>}
+
+            <div className="mt-4 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Frecuencia de ingreso">
+              {(Object.keys(incomeCadenceLabels) as IncomeCadence[]).map((cadence) => (
+                <button
+                  key={cadence}
+                  type="button"
+                  role="radio"
+                  aria-checked={selectedCadence === cadence}
+                  onClick={() => setValue("incomeCadence", cadence, { shouldValidate: true })}
+                  className={cn(
+                    "h-10 rounded-2xl border px-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    selectedCadence === cadence
+                      ? "border-primary bg-white text-primary shadow-soft"
+                      : "border-teal-100 bg-white/55 text-slate-600",
+                  )}
+                >
+                  {incomeCadenceLabels[cadence]}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="mt-4 flex items-start gap-3 rounded-2xl border border-lime-200 bg-lime-50 px-4 py-3 text-sm font-semibold leading-5 text-teal-950">
@@ -135,7 +166,7 @@ export function MonthlyBudgetSetupDialog() {
           {submitError && <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{submitError}</p>}
 
           <Button type="submit" size="lg" className="mt-5 w-full" disabled={isSubmitting || isAuthLoading}>
-            {isSubmitting || isAuthLoading ? "Guardando..." : "Guardar presupuesto"}
+            {isSubmitting || isAuthLoading ? "Guardando..." : "Guardar ingreso esperado"}
           </Button>
         </form>
       </section>
