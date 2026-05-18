@@ -4,6 +4,7 @@ Registro cronológico de features y fixes relevantes.
 
 | Date | Branch | Status | Document | DB impact |
 | ---- | ------ | ------ | -------- | --------- |
+| 2026-05-18 | `feature/remove-mocks-real-data` | Consolidated | [Branch Consolidation and Income Cadence Planning](./2026-05-18-branch-consolidation-income-cadence.md) | No schema change; future income cadence model noted |
 | 2026-05-16 | `feature/oauth-social-auth` | Implemented | [OAuth Social Auth](./2026-05-16-oauth-social-auth.md) | Remote auth_accounts migration owned by API repo |
 | 2026-05-16 | `feature/fixed-expenses-forecast` | Implemented | [Fixed Expenses Forecast](./2026-05-16-fixed-expenses-forecast.md) | Local IndexedDB tables; remote migration owned by API repo |
 | 2026-05-16 | `feature/api-sync-foundation` | In progress | [API Sync Foundation](./2026-05-16-api-sync-foundation.md) | API repo owns initial PostgreSQL schema |

@@ -1,21 +1,18 @@
 # Git Branching Standards — financial-management-front
 
-> **Contexto de deploy:** frontend SPA con Vite. Igual que en Jomi Matcha Front, el `dist/` generado no se commitea. `main` representa lo que debería estar en producción.
-
 ## Regla fundamental
 
-> **`main` = producción.** Nunca se integra código roto a `main`.
+`main` representa el frontend listo para producción. No se integra a `main` código que no compile o que rompa login, offline-first, PWA, IndexedDB o navegación principal.
 
 ## Estructura de ramas
 
 ```txt
-main          ← producción
-develop       ← integración y staging
-feature/*     ← nuevas funcionalidades (sale de develop, vuelve a develop)
-fix/*         ← correcciones no urgentes (sale de develop, vuelve a develop)
-hotfix/*      ← correcciones críticas (sale de main, va a main + develop)
-docs/*        ← documentación únicamente
-chore/*       ← mantenimiento/configuración
+main          <- producción / production-ready
+develop       <- integración y staging local
+feature/*     <- nuevas funcionalidades, sale de develop y vuelve a develop
+fix/*         <- correcciones no urgentes, sale de develop y vuelve a develop
+hotfix/*      <- correcciones críticas, sale de main y vuelve a main + develop
+docs/*        <- documentación/proceso cuando no cambia runtime
 ```
 
 ## Flujo normal
@@ -25,87 +22,75 @@ git checkout develop
 git pull origin develop
 git checkout -b feature/nombre-descriptivo
 
-npm run dev
+npm test
 npm run build
 
-git add .
-git commit -m "feat: descripción del cambio"
 git push origin feature/nombre-descriptivo
 ```
 
-Después:
+Integración esperada:
 
-- PR de `feature/*` o `fix/*` hacia `develop`.
-- PR de `develop` hacia `main` cuando el batch esté listo para producción.
-- Antes de PR a `main`, `npm run build` debe pasar limpio.
-
-## Flujo hotfix
-
-```bash
-git checkout main
-git pull origin main
-git checkout -b hotfix/descripcion-del-bug
-
-npm run build
-git commit -m "fix: descripción del bug"
-git push origin hotfix/descripcion-del-bug
+```txt
+feature/* -> develop -> main
 ```
 
-Después del merge a `main`, sincronizar `develop`.
+`develop` debe recibir features ya verificadas. `main` recibe batches completos listos para release.
 
 ## Convención de commits
 
-Seguir Conventional Commits:
+Usar Conventional Commits:
 
 ```txt
-feat:     nueva funcionalidad o pantalla
-fix:      corrección de bug de UI o lógica
-chore:    mantenimiento, configuración o dependencias
-docs:     documentación únicamente
-refactor: refactor sin cambio de comportamiento
-style:    cambios visuales/CSS
-test:     agregar o modificar tests
-build:    cambios de build
-ci:       cambios en CI/CD
+feat: nueva funcionalidad
+fix: corrección de bug
+docs: documentación únicamente
+test: pruebas
+refactor: cambio interno sin cambio funcional
+style: ajustes visuales
+chore: mantenimiento
+build: cambios de build/config
 ```
 
-Ejemplos:
+## Tracking obligatorio
+
+Cada feature relevante debe actualizar:
 
 ```txt
-feat: add transaction capture flow
-fix: avoid Zustand derived selector render loop
-style: refine monthly balance cards
-docs: document frontend foundation
-chore: configure Vite build ignores
+docs/features/YYYY-MM-DD-nombre-de-feature.md
+docs/features/FEATURES_LOG.md
 ```
 
-## Documentación
+Si toca persistencia, IndexedDB, syncQueue, API contract o base remota, documentar el impacto aunque no haya SQL en frontend.
 
-- Decisiones de arquitectura: `docs/architecture/*.md`
-- Cambios de modelo de datos: `docs/db/*.md` cuando exista persistencia
-- Cambios de producto/UX relevantes: documentar alcance, decisión, implementación y verificación
-- Features relevantes: `docs/features/YYYY-MM-DD-nombre-de-feature.md`
-- Índice de features: `docs/features/FEATURES_LOG.md`
-- Procedimientos SQL ejecutados: `docs/db/procedures_log.md`
-- Cambios de esquema o impacto de persistencia: `docs/db/modifications_log.md`
+## Build y deploy
 
-Toda feature debe declarar explícitamente su impacto en base de datos, incluso si es `Sin cambio de esquema`.
+El `dist/` del frontend no se commitea. Está en `.gitignore`.
 
-## Reglas sobre `dist/`
+Antes de integrar a `main`:
 
-El `dist/` no se commitea.
+```bash
+npm test
+npm run build
+```
 
-Por qué:
+## Variables de entorno
 
-- Cambia en cada build.
-- No aporta valor al historial.
-- La fuente de verdad es `src/` más la configuración de build.
+Nunca commitear `.env` con valores reales. Mantener solo ejemplos seguros.
 
-## Checklist antes de PR a `main`
+Variables esperadas:
 
-- [ ] La rama parte de `develop` o de `main` si es `hotfix/*`.
-- [ ] `npm run build` pasa sin errores.
-- [ ] No hay `.env` ni secretos commiteados.
-- [ ] `dist/` no está incluido.
-- [ ] La PR describe qué cambió y cómo probarlo.
-- [ ] La documentación se actualizó si cambió arquitectura, flujo o contrato.
+```txt
+VITE_API_BASE_URL=
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
+
+## Checklist antes de cerrar una feature
+
+- [ ] Documento de feature creado o actualizado.
+- [ ] `FEATURES_LOG.md` actualizado.
+- [ ] Sin mocks como fuente runtime.
+- [ ] `npm test` pasa.
+- [ ] `npm run build` pasa.
+- [ ] No hay datos sensibles en commits.
+- [ ] No se revierte trabajo no relacionado.
