@@ -4,6 +4,7 @@ Registro cronológico de features y fixes relevantes.
 
 | Date | Branch | Status | Document | DB impact |
 | ---- | ------ | ------ | -------- | --------- |
+| 2026-05-20 | `feature/dashboard-command-center-ui` | Implemented | [Dashboard Command Center UI](./2026-05-20-dashboard-command-center-ui.md) | None |
 | 2026-05-20 | `feature/dashboard-summary-frontend` | Implemented | [Dashboard Summary Frontend Integration](./2026-05-20-dashboard-summary-frontend.md) | None |
 | 2026-05-20 | `fix/fixed-expense-paid-status` | Implemented | [Fixed Expense Paid Status Consistency](./2026-05-20-fixed-expense-paid-status.md) | None |
 | 2026-05-20 | `feature/oauth-legal-pages` | Implemented | [OAuth Legal Pages](./2026-05-20-oauth-legal-pages.md) | None |
