@@ -4,6 +4,7 @@ Registro cronológico de features y fixes relevantes.
 
 | Date | Branch | Status | Document | DB impact |
 | ---- | ------ | ------ | -------- | --------- |
+| 2026-05-20 | `fix/fixed-expense-paid-status` | Implemented | [Fixed Expense Paid Status Consistency](./2026-05-20-fixed-expense-paid-status.md) | None |
 | 2026-05-20 | `feature/oauth-legal-pages` | Implemented | [OAuth Legal Pages](./2026-05-20-oauth-legal-pages.md) | None |
 | 2026-05-18 | `feature/income-cadence-forecast` | Implemented | [Income Cadence Forecast](./2026-05-18-income-cadence-forecast.md) | Local income settings cache; remote profile fields owned by API |
 | 2026-05-18 | `feature/remove-mocks-real-data` | Consolidated | [Branch Consolidation and Income Cadence Planning](./2026-05-18-branch-consolidation-income-cadence.md) | No schema change; future income cadence model noted |

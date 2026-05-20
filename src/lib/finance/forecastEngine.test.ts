@@ -89,6 +89,28 @@ describe("forecastEngine", () => {
     expect(forecast.actualExpenses).toBe(8500);
   });
 
+  it("considera pagado un gasto fijo con transaction vinculada aunque falte la occurrence", () => {
+    const paidTransaction: Transaction = {
+      ...variableExpense,
+      id: "tx-fixed-without-occurrence",
+      amount: 8500,
+      fixedExpenseId: fixedExpense.id,
+    };
+
+    const forecast = getMonthlyForecast({
+      transactions: [paidTransaction],
+      fixedExpenses: [fixedExpense],
+      fixedExpenseOccurrences: [],
+      monthlyBudget: 15000,
+      targetMonth: new Date("2026-05-01T00:00:00"),
+      today: new Date("2026-05-03T00:00:00"),
+    });
+
+    expect(forecast.fixedExpenseItems[0]?.status).toBe("paid");
+    expect(forecast.pendingFixedExpenses).toBe(0);
+    expect(forecast.actualFixedExpensesPaid).toBe(8500);
+  });
+
   it("genera warnings de pago vencido y presupuesto proyectado excedido", () => {
     const forecast = getMonthlyForecast({
       transactions: [variableExpense],

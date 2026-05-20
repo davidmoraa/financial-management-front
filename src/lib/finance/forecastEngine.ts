@@ -35,7 +35,13 @@ export function getMonthlyForecast(input: MonthlyForecastInput): MonthlyForecast
   const expenseTransactions = monthTransactions.filter((transaction) => transaction.type === "expense");
   const actualExpenses = sum(expenseTransactions);
   const activeFixedExpenses = getFixedExpensesForMonth(input.fixedExpenses, input.targetMonth);
-  const fixedExpenseItems = buildFixedExpenseItems(activeFixedExpenses, input.fixedExpenseOccurrences, input.targetMonth, today);
+  const fixedExpenseItems = buildFixedExpenseItems(
+    activeFixedExpenses,
+    input.fixedExpenseOccurrences,
+    monthTransactions,
+    input.targetMonth,
+    today,
+  );
   const paidTransactionIds = new Set(
     fixedExpenseItems
       .filter((item) => item.status === "paid" && item.occurrence?.transactionId)
@@ -191,17 +197,20 @@ export function getBudgetWarnings(forecast: MonthlyForecast, monthlyBudget: numb
 function buildFixedExpenseItems(
   fixedExpenses: FixedExpense[],
   occurrences: FixedExpenseOccurrence[],
+  transactions: Transaction[],
   targetMonth: Date,
   today: Date,
 ): FixedExpenseForecastItem[] {
   return fixedExpenses.map((fixedExpense) => {
-    const occurrence = occurrences.find(
-      (candidate) =>
-        !candidate.deletedAt &&
-        candidate.fixedExpenseId === fixedExpense.id &&
-        isSameMonth(parseISO(candidate.occurrenceMonth), targetMonth),
+    const occurrence = findOccurrenceForFixedExpense(occurrences, fixedExpense.id, targetMonth);
+    const linkedPayment = transactions.find(
+      (transaction) =>
+        transaction.type === "expense" &&
+        !transaction.deletedAt &&
+        (transaction.fixedExpenseId === fixedExpense.id ||
+          Boolean(occurrence?.id && transaction.fixedExpenseOccurrenceId === occurrence.id)),
     );
-    const status = occurrence?.status ?? "pending";
+    const status: FixedExpenseForecastItem["status"] = occurrence?.status ?? (linkedPayment ? "paid" : "pending");
     const day = getDate(today);
 
     return {
@@ -216,6 +225,21 @@ function buildFixedExpenseItems(
       overdue: status === "pending" && isSameMonth(today, targetMonth) && day > fixedExpense.paymentWindowEndDay,
     };
   });
+}
+
+function findOccurrenceForFixedExpense(
+  occurrences: FixedExpenseOccurrence[],
+  fixedExpenseId: string,
+  targetMonth: Date,
+): FixedExpenseOccurrence | undefined {
+  return occurrences
+    .filter(
+      (candidate) =>
+        !candidate.deletedAt &&
+        candidate.fixedExpenseId === fixedExpenseId &&
+        isSameMonth(parseISO(candidate.occurrenceMonth), targetMonth),
+    )
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
 }
 
 function projectVariableExpenses(actualVariableExpenses: number, targetMonth: Date, today: Date) {
