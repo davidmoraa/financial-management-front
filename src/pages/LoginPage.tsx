@@ -125,6 +125,17 @@ export function AuthPageShell({ title, subtitle, children }: { title: string; su
           <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">{subtitle}</p>
         </div>
         {children}
+        <p className="mt-6 text-center text-xs font-medium leading-5 text-muted-foreground">
+          Al continuar aceptas los{" "}
+          <Link className="font-bold text-primary underline-offset-4 hover:underline" to="/terms-of-service">
+            terminos
+          </Link>{" "}
+          y la{" "}
+          <Link className="font-bold text-primary underline-offset-4 hover:underline" to="/privacy-policy">
+            politica de privacidad
+          </Link>{" "}
+          de Money Flux.
+        </p>
       </Card>
     </main>
   );
