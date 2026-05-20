@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useMemo } from "react";
-import { ArrowRight, CalendarClock, Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, LoaderCircle, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { BalanceOverviewCard } from "@/components/dashboard/BalanceOverviewCard";
 import { MoneyFluxLogo } from "@/components/brand/MoneyFluxLogo";
 import { BudgetForecastCard } from "@/components/dashboard/BudgetForecastCard";
@@ -11,37 +11,19 @@ import { MonthlyMetricCard } from "@/components/dashboard/MonthlyMetricCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { SpendingProgressCard } from "@/components/dashboard/SpendingProgressCard";
 import { Button } from "@/components/ui/button";
-import { getMonthlyForecast } from "@/lib/finance/forecastEngine";
-import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
-import { useTransactionStore } from "@/stores/transactionStore";
 import { formatShortDate } from "@/lib/formatters";
+import { useDashboardSummary } from "@/hooks/useDashboardSummary";
+import { adaptDashboardSummary, getDashboardMonthKey, isDashboardSummaryEmpty } from "@/lib/dashboard/dashboardSummaryAdapter";
 
 export function DashboardPage() {
   const currentDate = useMemo(() => new Date(), []);
-  const transactions = useTransactionStore((state) => state.transactions);
-  const monthlyBudget = useTransactionStore((state) => state.monthlyBudget);
-  const expectedMonthlyIncome = useTransactionStore((state) => state.expectedMonthlyIncome);
-  const fixedExpenses = useFixedExpenseStore((state) => state.fixedExpenses);
-  const occurrences = useFixedExpenseStore((state) => state.occurrences);
-  const isHydrated = useTransactionStore((state) => state.isHydrated);
-  const getMonthlySummary = useTransactionStore((state) => state.getMonthlySummary);
-  const getRecentTransactions = useTransactionStore((state) => state.getRecentTransactions);
-
-  const summary = useMemo(() => getMonthlySummary(currentDate), [currentDate, getMonthlySummary, transactions]);
-  const recentTransactions = useMemo(() => getRecentTransactions(5), [getRecentTransactions, transactions]);
-  const forecast = useMemo(
-    () =>
-      getMonthlyForecast({
-        transactions,
-        fixedExpenses,
-        fixedExpenseOccurrences: occurrences,
-        monthlyBudget,
-        expectedMonthlyIncome,
-        targetMonth: currentDate,
-      }),
-    [currentDate, expectedMonthlyIncome, fixedExpenses, monthlyBudget, occurrences, transactions],
+  const month = useMemo(() => getDashboardMonthKey(currentDate), [currentDate]);
+  const { data: dashboardSummary, error, isLoading } = useDashboardSummary(month);
+  const adaptedDashboard = useMemo(
+    () => (dashboardSummary ? adaptDashboardSummary(dashboardSummary) : undefined),
+    [dashboardSummary],
   );
-  const hasFinancialData = transactions.some((transaction) => !transaction.deletedAt) || fixedExpenses.some((fixedExpense) => !fixedExpense.deletedAt);
+  const hasFinancialData = dashboardSummary ? !isDashboardSummaryEmpty(dashboardSummary) : false;
 
   return (
     <div className="space-y-6">
@@ -61,13 +43,30 @@ export function DashboardPage() {
         </Button>
       </section>
 
-      {!isHydrated && (
+      {isLoading && !adaptedDashboard && (
         <div className="rounded-2xl bg-white/75 px-4 py-3 text-sm font-semibold text-muted-foreground shadow-soft">
-          Cargando datos locales...
+          <span className="inline-flex items-center gap-2">
+            <LoaderCircle className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
+            Cargando command center...
+          </span>
         </div>
       )}
 
-      {isHydrated && !hasFinancialData && (
+      {error && (
+        <section className="rounded-[1.6rem] border border-red-100 bg-red-50 p-5 shadow-soft">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-1 h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
+            <div>
+              <h2 className="text-lg font-bold tracking-normal text-red-950">No pudimos cargar tu resumen financiero</h2>
+              <p className="mt-1 text-sm font-semibold leading-6 text-red-700">
+                Revisa tu conexión o intenta de nuevo. Tus registros locales no se borran.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {dashboardSummary && !hasFinancialData && (
         <section className="rounded-[1.6rem] border border-teal-100 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold tracking-normal text-foreground">Aún no tienes movimientos registrados.</h2>
           <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
@@ -90,38 +89,46 @@ export function DashboardPage() {
         </section>
       )}
 
-      <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <BalanceOverviewCard balance={summary.balance} />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-          <MonthlyMetricCard
-            label={summary.expectedIncome > summary.actualIncome ? "Ingreso esperado del mes" : "Ingresos del mes"}
-            amount={summary.income}
-            icon={TrendingUp}
-            variant="income"
+      {adaptedDashboard && (
+        <>
+          <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+            <BalanceOverviewCard balance={adaptedDashboard.monthlySummary.balance} />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              <MonthlyMetricCard
+                label={adaptedDashboard.monthlySummary.expectedIncome > adaptedDashboard.monthlySummary.actualIncome ? "Ingreso esperado del mes" : "Ingresos del mes"}
+                amount={adaptedDashboard.monthlySummary.income}
+                icon={TrendingUp}
+                variant="income"
+              />
+              <MonthlyMetricCard label="Gastos del mes" amount={adaptedDashboard.monthlySummary.expense} icon={TrendingDown} variant="expense" />
+            </div>
+          </section>
+
+          <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+            <SpendingProgressCard
+              expense={adaptedDashboard.monthlySummary.expense}
+              budget={adaptedDashboard.monthlySummary.budget}
+              percentage={adaptedDashboard.monthlySummary.budgetUsedPercentage}
+            />
+            <RecentTransactions movements={adaptedDashboard.recentMovements} />
+          </section>
+
+          <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <BudgetForecastCard monthlyBudget={adaptedDashboard.monthlySummary.budget} forecast={adaptedDashboard.forecast} />
+            <div className="grid gap-4">
+              <BudgetWarningsCard warnings={adaptedDashboard.forecast.warnings} />
+              <FixedExpensesThisMonth forecast={adaptedDashboard.forecast} />
+            </div>
+          </section>
+
+          <FinancialPieChartsCard
+            income={adaptedDashboard.monthlySummary.income}
+            actualIncome={adaptedDashboard.monthlySummary.actualIncome}
+            expense={adaptedDashboard.monthlySummary.expense}
+            forecast={adaptedDashboard.forecast}
           />
-          <MonthlyMetricCard label="Gastos del mes" amount={summary.expense} icon={TrendingDown} variant="expense" />
-        </div>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <SpendingProgressCard expense={summary.expense} budget={summary.budget} percentage={summary.budgetUsedPercentage} />
-        <RecentTransactions transactions={recentTransactions} />
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <BudgetForecastCard monthlyBudget={monthlyBudget} forecast={forecast} />
-        <div className="grid gap-4">
-          <BudgetWarningsCard warnings={forecast.warnings} />
-          <FixedExpensesThisMonth forecast={forecast} />
-        </div>
-      </section>
-
-      <FinancialPieChartsCard
-        income={summary.income}
-        actualIncome={summary.actualIncome}
-        expense={summary.expense}
-        forecast={forecast}
-      />
+        </>
+      )}
 
       <Link
         to="/history"
