@@ -6,15 +6,16 @@ import {
   parseISO,
 } from "date-fns";
 import { getMonthlyForecast } from "@/lib/finance/forecastEngine";
+import { getExpectedMonthlyIncomeSetting, getMonthlyBudgetSetting } from "@/lib/offline/db";
 import { getAllFixedExpenses } from "@/lib/offline/fixedExpenseRepository";
 import { getOccurrencesByMonth } from "@/lib/offline/fixedExpenseOccurrenceRepository";
 import { getAllTransactions } from "@/lib/offline/transactionRepository";
-import { getExpectedMonthlyIncomeSetting, getMonthlyBudgetSetting } from "@/lib/offline/db";
-import type { DashboardSummary } from "@/types/dashboard";
+import type { DashboardPeriod, DashboardSummary } from "@/types/dashboard";
 import type { FixedExpenseForecastItem } from "@/types/fixedExpenses";
 import type { Transaction } from "@/types/finance";
 
 type BuildLocalDashboardSummaryOptions = {
+  period?: DashboardPeriod;
   remoteSummary?: DashboardSummary;
   today?: Date;
 };
@@ -23,8 +24,15 @@ export async function buildLocalDashboardSummary(
   month: string,
   options: BuildLocalDashboardSummaryOptions = {},
 ): Promise<DashboardSummary | undefined> {
-  const targetMonth = parseDashboardMonth(month);
+  const targetMonth = parseISO(`${month}-01`);
   const today = options.today ?? new Date();
+  const period = options.period ?? {
+    type: "monthly",
+    label: format(targetMonth, "MMMM yyyy"),
+    shortLabel: "Mes actual",
+    startsAt: `${month}-01`,
+    endsAt: `${month}-${String(getDaysInMonth(targetMonth)).padStart(2, "0")}`,
+  };
   const [transactions, fixedExpenses, fixedExpenseOccurrences, storedBudget, storedExpectedIncome] = await Promise.all([
     getAllTransactions(),
     getAllFixedExpenses(),
@@ -40,13 +48,16 @@ export async function buildLocalDashboardSummary(
     return undefined;
   }
 
-  if (!hasLocalRecords && remoteHasActivity) {
+  if (!hasLocalRecords && remoteHasActivity && period.type === "monthly") {
     return undefined;
   }
 
   const monthlyBudget = storedBudget || options.remoteSummary?.budget.monthlyBudget || 0;
   const expectedMonthlyIncome = storedExpectedIncome || options.remoteSummary?.income.expected || 0;
-  const forecast = getMonthlyForecast({
+  const periodRatio = getPeriodRatio(period, targetMonth);
+  const periodBudget = Math.round(monthlyBudget * periodRatio);
+  const periodExpectedIncome = Math.round(expectedMonthlyIncome * periodRatio);
+  const monthForecast = getMonthlyForecast({
     transactions,
     fixedExpenses,
     fixedExpenseOccurrences,
@@ -55,37 +66,60 @@ export async function buildLocalDashboardSummary(
     targetMonth,
     today,
   });
-  const monthTransactions = transactions
-    .filter((transaction) => !transaction.deletedAt && isTransactionInMonth(transaction, targetMonth))
+  const periodTransactions = transactions
+    .filter((transaction) => !transaction.deletedAt && isTransactionInPeriod(transaction, period))
     .sort(sortTransactionsDesc);
-  const actualIncome = monthTransactions
-    .filter((transaction) => transaction.type === "income")
+  const incomeTransactions = periodTransactions.filter((transaction) => transaction.type === "income");
+  const expenseTransactions = periodTransactions.filter((transaction) => transaction.type === "expense");
+  const actualIncome = sumTransactions(incomeTransactions);
+  const actualExpenses = sumTransactions(expenseTransactions);
+  const periodFixedItems = monthForecast.fixedExpenseItems.filter((item) => fixedExpenseIntersectsPeriod(item, period));
+  const paidTransactionIds = new Set(
+    periodFixedItems
+      .filter((item) => item.status === "paid" && item.occurrence?.transactionId)
+      .map((item) => item.occurrence!.transactionId!),
+  );
+  const actualFixedExpensesPaid = expenseTransactions
+    .filter((transaction) => transaction.fixedExpenseId || transaction.fixedExpenseOccurrenceId || paidTransactionIds.has(transaction.id))
     .reduce((total, transaction) => total + transaction.amount, 0);
-  const actualExpenses = monthTransactions
-    .filter((transaction) => transaction.type === "expense")
-    .reduce((total, transaction) => total + transaction.amount, 0);
-  const expectedIncome = Math.max(expectedMonthlyIncome, actualIncome, options.remoteSummary?.income.expected ?? 0);
-  const projectedEndOfMonth = expectedIncome - forecast.projectedMonthEndExpenses;
-  const usedPercentage = monthlyBudget > 0 ? Math.round((actualExpenses / monthlyBudget) * 100) : 0;
-  const nextFixedExpense = getNextFixedExpense(forecast.fixedExpenseItems, targetMonth, today);
+  const actualVariableExpenses = Math.max(0, actualExpenses - actualFixedExpensesPaid);
+  const pendingFixedExpenses = periodFixedItems
+    .filter((item) => item.status === "pending" && item.fixedExpense.includeInForecast)
+    .reduce((total, item) => total + item.fixedExpense.amount, 0);
+  const projectedVariableExpenses = projectVariableExpensesForPeriod(actualVariableExpenses, period, today);
+  const expectedIncome = Math.max(periodExpectedIncome, actualIncome);
+  const projectedExpenses = actualFixedExpensesPaid + pendingFixedExpenses + projectedVariableExpenses;
+  const projectedEndOfPeriod = expectedIncome - projectedExpenses;
+  const remainingVariableBudget = Math.max(0, periodBudget - actualExpenses - pendingFixedExpenses);
+  const safeToSpendToday = getPeriodSafeDailySpend({
+    actualExpenses,
+    pendingFixedExpenses,
+    period,
+    periodBudget,
+    today,
+  });
+  const usedPercentage = periodBudget > 0 ? Math.round((actualExpenses / periodBudget) * 100) : 0;
+  const nextFixedExpense = getNextFixedExpense(periodFixedItems, targetMonth, today);
 
   return {
     month,
+    period,
     balance: {
       current: actualIncome - actualExpenses,
-      projectedEndOfMonth,
-      status: getBalanceStatus(projectedEndOfMonth, usedPercentage),
+      projectedEndOfMonth: projectedEndOfPeriod,
+      status: getBalanceStatus(projectedEndOfPeriod, usedPercentage),
       message: getBalanceMessage({
         actualIncome,
         actualExpenses,
-        fixedPending: forecast.pendingFixedExpenses,
-        projectedEndOfMonth,
+        fixedPending: pendingFixedExpenses,
+        period,
+        projectedEndOfPeriod,
       }),
     },
     spendingPower: {
-      safeToSpendToday: forecast.safeDailySpend,
-      recommendedDailySpend: forecast.safeDailySpend,
-      remainingVariableBudget: Math.max(0, forecast.remainingAfterPendingFixed),
+      safeToSpendToday,
+      recommendedDailySpend: safeToSpendToday,
+      remainingVariableBudget,
     },
     income: {
       expected: expectedIncome,
@@ -94,34 +128,30 @@ export async function buildLocalDashboardSummary(
     },
     expenses: {
       spent: actualExpenses,
-      fixedPending: forecast.pendingFixedExpenses,
-      variableSpent: forecast.actualVariableExpenses,
+      fixedPending: pendingFixedExpenses,
+      variableSpent: actualVariableExpenses,
     },
     budget: {
-      monthlyBudget,
+      monthlyBudget: periodBudget,
       used: actualExpenses,
       usedPercentage,
     },
     nextFixedExpense,
     recommendedAction: getRecommendedAction({
-      hasMovementToday: monthTransactions.some((transaction) => isSameDay(parseISO(transaction.transactionDate), today)),
-      nextFixedExpense,
       categoriesToWatch: options.remoteSummary?.categoriesToWatch ?? [],
+      hasMovementToday: periodTransactions.some((transaction) => isSameDay(parseISO(transaction.transactionDate), today)),
+      nextFixedExpense,
     }),
     categoriesToWatch: options.remoteSummary?.categoriesToWatch ?? [],
-    recentMovements: monthTransactions.slice(0, 5).map(toRecentMovement),
+    recentMovements: periodTransactions.slice(0, 5).map(toRecentMovement),
     habit: {
       currentStreakDays: options.remoteSummary?.habit.currentStreakDays ?? 0,
       registrationCoveragePercentage: options.remoteSummary?.habit.registrationCoveragePercentage ?? 0,
-      message: monthTransactions.length > 0
-        ? "Tus movimientos locales están reflejados en el resumen del mes."
+      message: periodTransactions.length > 0
+        ? `Tus movimientos locales están reflejados en ${period.shortLabel.toLowerCase()}.`
         : options.remoteSummary?.habit.message ?? "Registra tu primer movimiento.",
     },
   };
-}
-
-function parseDashboardMonth(month: string) {
-  return parseISO(`${month}-01`);
 }
 
 function isRemoteSummaryEmpty(summary: DashboardSummary) {
@@ -134,8 +164,15 @@ function isRemoteSummaryEmpty(summary: DashboardSummary) {
   );
 }
 
-function isTransactionInMonth(transaction: Transaction, targetMonth: Date) {
-  return transaction.transactionDate.startsWith(format(targetMonth, "yyyy-MM"));
+function isTransactionInPeriod(transaction: Transaction, period: DashboardPeriod) {
+  return transaction.transactionDate >= period.startsAt && transaction.transactionDate <= period.endsAt;
+}
+
+function fixedExpenseIntersectsPeriod(item: FixedExpenseForecastItem, period: DashboardPeriod) {
+  const month = period.startsAt.slice(0, 7);
+  const startDate = `${month}-${String(item.fixedExpense.paymentWindowStartDay).padStart(2, "0")}`;
+  const endDate = `${month}-${String(item.fixedExpense.paymentWindowEndDay).padStart(2, "0")}`;
+  return startDate <= period.endsAt && endDate >= period.startsAt;
 }
 
 function sortTransactionsDesc(a: Transaction, b: Transaction) {
@@ -180,8 +217,49 @@ function getFixedExpenseDueDate(targetMonth: Date, day: number) {
   return `${month}-${String(clampedDay).padStart(2, "0")}`;
 }
 
-function getBalanceStatus(projectedEndOfMonth: number, usedPercentage: number): DashboardSummary["balance"]["status"] {
-  if (projectedEndOfMonth < 0 || usedPercentage >= 100) {
+function getPeriodRatio(period: DashboardPeriod, targetMonth: Date) {
+  if (period.type === "monthly") {
+    return 1;
+  }
+
+  if (period.type === "biweekly") {
+    return 0.5;
+  }
+
+  const daysInPeriod = differenceInCalendarDays(parseISO(period.endsAt), parseISO(period.startsAt)) + 1;
+  return daysInPeriod / getDaysInMonth(targetMonth);
+}
+
+function getPeriodSafeDailySpend(input: {
+  actualExpenses: number;
+  pendingFixedExpenses: number;
+  period: DashboardPeriod;
+  periodBudget: number;
+  today: Date;
+}) {
+  const remaining = input.periodBudget - input.actualExpenses - input.pendingFixedExpenses;
+  const todayKey = format(input.today, "yyyy-MM-dd");
+  const effectiveStart = todayKey > input.period.startsAt ? todayKey : input.period.startsAt;
+  const daysRemaining = Math.max(1, differenceInCalendarDays(parseISO(input.period.endsAt), parseISO(effectiveStart)) + 1);
+  return Math.max(0, remaining / daysRemaining);
+}
+
+function projectVariableExpensesForPeriod(actualVariableExpenses: number, period: DashboardPeriod, today: Date) {
+  const periodStartsAt = parseISO(period.startsAt);
+  const periodEndsAt = parseISO(period.endsAt);
+  const periodDays = differenceInCalendarDays(periodEndsAt, periodStartsAt) + 1;
+  const todayKey = format(today, "yyyy-MM-dd");
+
+  if (todayKey < period.startsAt || todayKey > period.endsAt) {
+    return actualVariableExpenses;
+  }
+
+  const elapsedDays = Math.max(1, differenceInCalendarDays(today, periodStartsAt) + 1);
+  return (actualVariableExpenses / elapsedDays) * periodDays;
+}
+
+function getBalanceStatus(projectedEndOfPeriod: number, usedPercentage: number): DashboardSummary["balance"]["status"] {
+  if (projectedEndOfPeriod < 0 || usedPercentage >= 100) {
     return "risk";
   }
   if (usedPercentage >= 80) {
@@ -194,21 +272,22 @@ function getBalanceMessage(input: {
   actualIncome: number;
   actualExpenses: number;
   fixedPending: number;
-  projectedEndOfMonth: number;
+  period: DashboardPeriod;
+  projectedEndOfPeriod: number;
 }) {
   if (input.actualIncome === 0 && input.actualExpenses === 0 && input.fixedPending === 0) {
-    return "Aún no hay movimientos este mes. Registra tus datos para activar el command center.";
+    return `Aún no hay movimientos en ${input.period.shortLabel.toLowerCase()}. Registra tus datos para activar el command center.`;
   }
 
-  if (input.projectedEndOfMonth < 0) {
-    return "Tus registros muestran presión contra el presupuesto del mes.";
+  if (input.projectedEndOfPeriod < 0) {
+    return `Tus registros muestran presión contra el presupuesto de ${input.period.shortLabel.toLowerCase()}.`;
   }
 
   if (input.fixedPending > 0) {
-    return "Tus movimientos ya cuentan; aún quedan pagos fijos por cubrir.";
+    return `Tus movimientos ya cuentan; aún quedan pagos fijos en ${input.period.shortLabel.toLowerCase()}.`;
   }
 
-  return "Tus movimientos registrados ya están reflejados en el mes.";
+  return `Tus movimientos registrados ya están reflejados en ${input.period.shortLabel.toLowerCase()}.`;
 }
 
 function getRecommendedAction(input: {
@@ -251,4 +330,8 @@ function getRecommendedAction(input: {
   }
 
   return undefined;
+}
+
+function sumTransactions(transactions: Transaction[]) {
+  return transactions.reduce((total, transaction) => total + transaction.amount, 0);
 }

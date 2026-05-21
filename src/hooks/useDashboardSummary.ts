@@ -3,7 +3,7 @@ import { buildLocalDashboardSummary } from "@/lib/dashboard/localDashboardSummar
 import { fetchDashboardSummary } from "@/services/dashboardApi";
 import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
 import { useTransactionStore } from "@/stores/transactionStore";
-import type { DashboardSummary } from "@/types/dashboard";
+import type { DashboardPeriod, DashboardSummary } from "@/types/dashboard";
 
 type DashboardSummaryState = {
   data?: DashboardSummary;
@@ -11,7 +11,7 @@ type DashboardSummaryState = {
   isLoading: boolean;
 };
 
-export function useDashboardSummary(month: string) {
+export function useDashboardSummary(month: string, period?: DashboardPeriod) {
   const [state, setState] = useState<DashboardSummaryState>({ isLoading: true });
   const transactionVersion = useTransactionStore((store) =>
     store.transactions.map((transaction) => `${transaction.id}:${transaction.updatedAt}:${transaction.deletedAt ?? ""}`).join("|"),
@@ -40,7 +40,7 @@ export function useDashboardSummary(month: string) {
         remoteError = error instanceof Error ? error : new Error("No se pudo cargar el dashboard.");
       }
 
-      const localSummary = await buildLocalDashboardSummary(month, { remoteSummary });
+      const localSummary = await buildLocalDashboardSummary(month, { period, remoteSummary });
 
       if (!cancelled) {
         const summary = localSummary ?? remoteSummary;
@@ -73,7 +73,17 @@ export function useDashboardSummary(month: string) {
     return () => {
       cancelled = true;
     };
-  }, [expectedMonthlyIncome, fixedExpenseVersion, month, monthlyBudget, occurrenceVersion, transactionVersion]);
+  }, [
+    expectedMonthlyIncome,
+    fixedExpenseVersion,
+    month,
+    monthlyBudget,
+    occurrenceVersion,
+    period?.endsAt,
+    period?.startsAt,
+    period?.type,
+    transactionVersion,
+  ]);
 
   return state;
 }

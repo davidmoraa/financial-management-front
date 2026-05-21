@@ -29,7 +29,7 @@ function getInitialValues(type: TransactionType = "expense", paymentMethod: Paym
 
   return {
     type,
-    amount: undefined as unknown as number,
+    amount: "" as unknown as number,
     categoryId: firstCategory?.id ?? "",
     paymentMethod,
     transactionDate: today(),
@@ -43,6 +43,11 @@ export function TransactionForm() {
   const getCategoriesByType = useCategoryStore((state) => state.getCategoriesByType);
   const [showSuccess, setShowSuccess] = useState(false);
   const [offlineSaved, setOfflineSaved] = useState(false);
+  const [savedReward, setSavedReward] = useState<{
+    amount: number;
+    categoryName: string;
+    type: TransactionType;
+  }>();
   const successTimer = useRef<number | undefined>(undefined);
 
   const {
@@ -79,10 +84,15 @@ export function TransactionForm() {
   }, []);
 
   const onSubmit = async (values: TransactionFormValues) => {
-    await addTransaction(values);
-    setShowSuccess(true);
-    setOfflineSaved(!isOnline);
+    const transaction = await addTransaction(values);
     reset(getInitialValues(values.type, values.paymentMethod));
+    setSavedReward({
+      amount: transaction.amount,
+      categoryName: transaction.categoryName,
+      type: transaction.type,
+    });
+    setOfflineSaved(!isOnline);
+    setShowSuccess(true);
 
     if (successTimer.current) {
       window.clearTimeout(successTimer.current);
@@ -90,12 +100,18 @@ export function TransactionForm() {
     successTimer.current = window.setTimeout(() => {
       setShowSuccess(false);
       setOfflineSaved(false);
+      setSavedReward(undefined);
     }, 2200);
   };
 
   return (
     <>
-      <SuccessPulse show={showSuccess} />
+      <SuccessPulse
+        amount={savedReward?.amount}
+        categoryName={savedReward?.categoryName}
+        show={showSuccess}
+        type={savedReward?.type}
+      />
       <Card className="overflow-hidden">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-5 md:p-7">
           <TransactionTypeToggle

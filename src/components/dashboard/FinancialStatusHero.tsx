@@ -15,15 +15,15 @@ const statusCopy = {
   risk: "Riesgo de presupuesto",
 };
 
-const statusTitle = {
-  healthy: "Tu mes va bajo control.",
-  warning: "Tu ritmo necesita atención.",
-  risk: "Conviene ajustar hoy.",
-};
-
 export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
   const isPositiveProjection = summary.balance.projectedEndOfMonth >= 0;
   const ProjectionIcon = isPositiveProjection ? ArrowUpRight : ArrowDownRight;
+  const periodLabel = summary.period?.shortLabel.toLowerCase() ?? "mes";
+  const statusTitle = {
+    healthy: `Tu ${periodLabel} va bajo control.`,
+    warning: `Tu ${periodLabel} necesita atención.`,
+    risk: `Conviene ajustar tu ${periodLabel}.`,
+  };
 
   return (
     <motion.section

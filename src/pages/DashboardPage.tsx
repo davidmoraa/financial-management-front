@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, CalendarClock, LoaderCircle, Plus } from "lucide-react";
 import { CashflowProjectionCard } from "@/components/dashboard/CashflowProjectionCard";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DashboardPeriodSelector } from "@/components/dashboard/DashboardPeriodSelector";
 import { FinancialStatusHero } from "@/components/dashboard/FinancialStatusHero";
 import { FinancialStreakCard } from "@/components/dashboard/FinancialStreakCard";
 import { MonthlyRhythmCard } from "@/components/dashboard/MonthlyRhythmCard";
@@ -13,17 +14,22 @@ import { UpcomingFixedExpenseCard } from "@/components/dashboard/UpcomingFixedEx
 import { WatchCategoriesCard } from "@/components/dashboard/WatchCategoriesCard";
 import { Button } from "@/components/ui/button";
 import { useDashboardSummary } from "@/hooks/useDashboardSummary";
+import { getDashboardPeriod } from "@/lib/dashboard/dashboardPeriod";
 import { getDashboardMonthKey, isDashboardSummaryEmpty } from "@/lib/dashboard/dashboardSummaryAdapter";
+import type { DashboardPeriodType } from "@/types/dashboard";
 
 export function DashboardPage() {
   const currentDate = useMemo(() => new Date(), []);
+  const [periodType, setPeriodType] = useState<DashboardPeriodType>("monthly");
   const month = useMemo(() => getDashboardMonthKey(currentDate), [currentDate]);
-  const { data: dashboardSummary, error, isLoading } = useDashboardSummary(month);
+  const period = useMemo(() => getDashboardPeriod(periodType, currentDate), [currentDate, periodType]);
+  const { data: dashboardSummary, error, isLoading } = useDashboardSummary(month, period);
   const isEmpty = dashboardSummary ? isDashboardSummaryEmpty(dashboardSummary) : false;
 
   return (
     <div className="space-y-5 md:space-y-6">
       <DashboardHeader currentDate={currentDate} />
+      <DashboardPeriodSelector value={periodType} period={period} onChange={setPeriodType} />
 
       {isLoading && !dashboardSummary && <DashboardLoadingState />}
 

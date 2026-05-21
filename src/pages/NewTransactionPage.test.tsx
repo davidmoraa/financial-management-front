@@ -23,7 +23,10 @@ describe("NewTransactionPage", () => {
     await user.type(screen.getByLabelText("Monto"), "88");
     await user.click(screen.getByRole("button", { name: /guardar movimiento/i }));
 
+    expect(await screen.findByText("Movimiento registrado")).toBeInTheDocument();
+    expect(screen.getByText("+1 registro para mantener tu ritmo")).toBeInTheDocument();
     expect(await screen.findByText("Guardado en este dispositivo. Se sincronizará cuando vuelva internet.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Monto")).toHaveValue(null);
     expect(useTransactionStore.getState().transactions).toHaveLength(1);
     expect(useTransactionStore.getState().transactions[0]).toMatchObject({
       amount: 88,

@@ -14,12 +14,13 @@ export function MonthlyRhythmCard({ summary }: MonthlyRhythmCardProps) {
   const isRisk = summary.budget.usedPercentage >= 100;
   const isWarning = summary.budget.usedPercentage >= 80 && !isRisk;
   const Icon = isRisk || isWarning ? AlertTriangle : CheckCircle2;
+  const periodLabel = summary.period?.shortLabel.toLowerCase() ?? "mes";
 
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black uppercase tracking-normal text-primary">Ritmo mensual</p>
+          <p className="text-sm font-black uppercase tracking-normal text-primary">Ritmo del periodo</p>
           <h2 className="mt-1 text-lg font-black tracking-normal text-foreground">
             {hasBudget ? `${summary.budget.usedPercentage}% usado` : "Presupuesto pendiente"}
           </h2>
@@ -36,7 +37,7 @@ export function MonthlyRhythmCard({ summary }: MonthlyRhythmCardProps) {
             indicatorClassName={cn(isRisk ? "bg-red-500" : isWarning ? "bg-amber-400" : "bg-primary")}
           />
           <div className="mt-4 grid gap-2">
-            <RhythmRow label="Presupuesto" value={formatCurrency(summary.budget.monthlyBudget)} />
+            <RhythmRow label={`Presupuesto de ${periodLabel}`} value={formatCurrency(summary.budget.monthlyBudget)} />
             <RhythmRow label="Gastado" value={formatCurrency(summary.budget.used)} />
             <RhythmRow label="Gastos fijos pendientes" value={formatCurrency(summary.expenses.fixedPending)} />
           </div>

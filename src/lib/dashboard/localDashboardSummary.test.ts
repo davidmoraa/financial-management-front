@@ -139,4 +139,48 @@ describe("localDashboardSummary", () => {
     expect(summary?.expenses.fixedPending).toBe(0);
     expect(summary?.nextFixedExpense).toBeUndefined();
   });
+
+  it("calcula el resumen para la semana activa sin incluir movimientos fuera del periodo", async () => {
+    await setIncomeSettings({
+      monthlyBudget: 31000,
+      expectedIncomeAmount: 31000,
+      expectedMonthlyIncome: 31000,
+      incomeCadence: "monthly",
+    });
+    const fixedExpense = await createFixedExpense({
+      name: "Internet",
+      amount: 710,
+      categoryId: "home",
+      categoryName: "Casa",
+      paymentMethod: "debit_card",
+      paymentWindowStartDay: 1,
+      paymentWindowEndDay: 8,
+      activeFromMonth: "2026-05-01",
+      includeInForecast: true,
+    });
+    await markFixedExpensePaid({
+      fixedExpenseId: fixedExpense.id,
+      occurrenceMonth: "2026-05-01",
+      transactionDate: "2026-05-04",
+      amount: 710,
+      paymentMethod: "debit_card",
+    });
+
+    const summary = await buildLocalDashboardSummary("2026-05", {
+      remoteSummary: emptyRemoteSummary,
+      today: new Date("2026-05-20T12:00:00"),
+      period: {
+        type: "weekly",
+        label: "Semana del 18 may",
+        shortLabel: "Semana actual",
+        startsAt: "2026-05-18",
+        endsAt: "2026-05-24",
+      },
+    });
+
+    expect(summary?.period?.type).toBe("weekly");
+    expect(summary?.expenses.spent).toBe(0);
+    expect(summary?.recentMovements).toHaveLength(0);
+    expect(summary?.budget.monthlyBudget).toBe(7000);
+  });
 });

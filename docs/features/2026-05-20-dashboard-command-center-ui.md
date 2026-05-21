@@ -26,6 +26,13 @@ Redesign the main dashboard into the Financial Command Center while keeping the 
 - Paid fixed expenses are excluded from `nextFixedExpense` so they do not keep appearing as pending payments.
 - Date-only values such as `2026-05-20` are parsed as local calendar dates to avoid showing the previous day.
 
+### 3. Period views and registration reward
+
+- Added dashboard period views for monthly, current biweekly period and current week.
+- Period views prorate expected income and budget, then filter local movements and fixed expense windows to the active range.
+- Added a richer transaction save reward animation with amount/category feedback and progress copy.
+- Transaction form now clears the amount immediately after a successful save.
+
 Primary files
 
 - `src/pages/DashboardPage.tsx`
@@ -39,9 +46,13 @@ Primary files
 - `src/components/dashboard/WatchCategoriesCard.tsx`
 - `src/components/dashboard/RecentMovementsCard.tsx`
 - `src/components/dashboard/FinancialStreakCard.tsx`
+- `src/components/dashboard/DashboardPeriodSelector.tsx`
 - `src/hooks/useDashboardSummary.ts`
+- `src/lib/dashboard/dashboardPeriod.ts`
 - `src/lib/dashboard/localDashboardSummary.ts`
 - `src/lib/formatters.ts`
+- `src/components/feedback/SuccessPulse.tsx`
+- `src/components/transactions/TransactionForm.tsx`
 
 ## Impacto en base de datos
 
@@ -62,6 +73,8 @@ The dashboard should tell the user how the month is going, what can be spent saf
 
 - The dashboard uses the real `DashboardSummary` API contract through `useDashboardSummary`.
 - Unsynced local fixed expense payments are reflected immediately in dashboard metrics and upcoming payment state.
+- The user can switch dashboard scope between month, current biweekly period and current week.
+- Saving a transaction clears the capture form and shows a more rewarding confirmation animation.
 - Desktop uses a two-column grid after the hero.
 - Mobile uses a single stacked column without horizontal overflow.
 - New users see a real empty state instead of demo data.

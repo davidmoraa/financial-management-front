@@ -9,9 +9,19 @@ export type DashboardRecommendedActionType =
   | "adjust_budget";
 export type DashboardPriority = "low" | "medium" | "high";
 export type DashboardCategoryStatus = "ok" | "warning" | "danger";
+export type DashboardPeriodType = "monthly" | "biweekly" | "weekly";
+
+export type DashboardPeriod = {
+  type: DashboardPeriodType;
+  label: string;
+  shortLabel: string;
+  startsAt: string;
+  endsAt: string;
+};
 
 export type DashboardSummary = {
   month: string;
+  period?: DashboardPeriod;
   balance: {
     current: number;
     projectedEndOfMonth: number;
