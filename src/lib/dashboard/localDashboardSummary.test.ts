@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildLocalDashboardSummary } from "@/lib/dashboard/localDashboardSummary";
 import { createFixedExpense } from "@/lib/offline/fixedExpenseRepository";
 import { markFixedExpensePaid } from "@/lib/offline/fixedExpenseOccurrenceRepository";
+import { createTransaction } from "@/lib/offline/transactionRepository";
 import { setIncomeSettings } from "@/lib/offline/db";
 import type { DashboardSummary } from "@/types/dashboard";
 
@@ -182,5 +183,68 @@ describe("localDashboardSummary", () => {
     expect(summary?.expenses.spent).toBe(0);
     expect(summary?.recentMovements).toHaveLength(0);
     expect(summary?.budget.monthlyBudget).toBe(7000);
+  });
+
+  it("calcula la racha financiera con meta progresiva cuando hay registros consecutivos", async () => {
+    for (const transactionDate of ["2026-05-18", "2026-05-19", "2026-05-20"]) {
+      await createTransaction({
+        type: "expense",
+        amount: 50,
+        categoryId: "food",
+        categoryName: "Comida",
+        paymentMethod: "debit_card",
+        transactionDate,
+      });
+    }
+
+    const summary = await buildLocalDashboardSummary("2026-05", {
+      remoteSummary: emptyRemoteSummary,
+      today: new Date("2026-05-20T12:00:00"),
+      period: {
+        type: "weekly",
+        label: "Semana del 18 may",
+        shortLabel: "Semana actual",
+        startsAt: "2026-05-18",
+        endsAt: "2026-05-24",
+      },
+    });
+
+    expect(summary?.habit).toMatchObject({
+      currentStreakDays: 3,
+      daysToNextMilestone: 4,
+      isAtRisk: false,
+      milestoneProgressPercentage: 43,
+      nextMilestoneDays: 7,
+      registrationCoveragePercentage: 100,
+    });
+  });
+
+  it("mantiene la racha en riesgo cuando falta el registro de hoy", async () => {
+    for (const transactionDate of ["2026-05-18", "2026-05-19"]) {
+      await createTransaction({
+        type: "expense",
+        amount: 50,
+        categoryId: "food",
+        categoryName: "Comida",
+        paymentMethod: "debit_card",
+        transactionDate,
+      });
+    }
+
+    const summary = await buildLocalDashboardSummary("2026-05", {
+      remoteSummary: emptyRemoteSummary,
+      today: new Date("2026-05-20T12:00:00"),
+      period: {
+        type: "weekly",
+        label: "Semana del 18 may",
+        shortLabel: "Semana actual",
+        startsAt: "2026-05-18",
+        endsAt: "2026-05-24",
+      },
+    });
+
+    expect(summary?.habit.currentStreakDays).toBe(2);
+    expect(summary?.habit.isAtRisk).toBe(true);
+    expect(summary?.habit.message).toContain("Registra hoy");
   });
 });

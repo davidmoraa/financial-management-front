@@ -3,6 +3,7 @@ import {
   format,
   getDaysInMonth,
   isSameDay,
+  subDays,
   parseISO,
 } from "date-fns";
 import { getMonthlyForecast } from "@/lib/finance/forecastEngine";
@@ -69,6 +70,13 @@ export async function buildLocalDashboardSummary(
   const periodTransactions = transactions
     .filter((transaction) => !transaction.deletedAt && isTransactionInPeriod(transaction, period))
     .sort(sortTransactionsDesc);
+  const habit = buildHabit({
+    allTransactions: transactions.filter((transaction) => !transaction.deletedAt),
+    period,
+    periodTransactions,
+    remoteHabit: options.remoteSummary?.habit,
+    today,
+  });
   const incomeTransactions = periodTransactions.filter((transaction) => transaction.type === "income");
   const expenseTransactions = periodTransactions.filter((transaction) => transaction.type === "expense");
   const actualIncome = sumTransactions(incomeTransactions);
@@ -144,13 +152,7 @@ export async function buildLocalDashboardSummary(
     }),
     categoriesToWatch: options.remoteSummary?.categoriesToWatch ?? [],
     recentMovements: periodTransactions.slice(0, 5).map(toRecentMovement),
-    habit: {
-      currentStreakDays: options.remoteSummary?.habit.currentStreakDays ?? 0,
-      registrationCoveragePercentage: options.remoteSummary?.habit.registrationCoveragePercentage ?? 0,
-      message: periodTransactions.length > 0
-        ? `Tus movimientos locales están reflejados en ${period.shortLabel.toLowerCase()}.`
-        : options.remoteSummary?.habit.message ?? "Registra tu primer movimiento.",
-    },
+    habit,
   };
 }
 
@@ -330,6 +332,96 @@ function getRecommendedAction(input: {
   }
 
   return undefined;
+}
+
+function buildHabit(input: {
+  allTransactions: Transaction[];
+  period: DashboardPeriod;
+  periodTransactions: Transaction[];
+  remoteHabit?: DashboardSummary["habit"];
+  today: Date;
+}): DashboardSummary["habit"] {
+  const todayKey = format(input.today, "yyyy-MM-dd");
+  const transactionDates = new Set(input.allTransactions.map((transaction) => transaction.transactionDate));
+  const hasAnyTransaction = transactionDates.size > 0;
+  const hasTransactionToday = transactionDates.has(todayKey);
+  const streakAnchor = hasTransactionToday ? input.today : subDays(input.today, 1);
+  let currentStreakDays = 0;
+  let cursor = streakAnchor;
+
+  while (transactionDates.has(format(cursor, "yyyy-MM-dd"))) {
+    currentStreakDays += 1;
+    cursor = subDays(cursor, 1);
+  }
+
+  const elapsedDays = getElapsedPeriodDays(input.period, input.today);
+  const activePeriodDates = new Set(input.periodTransactions.map((transaction) => transaction.transactionDate));
+  const registrationCoveragePercentage = elapsedDays > 0
+    ? Math.min(100, Math.round((activePeriodDates.size / elapsedDays) * 100))
+    : 0;
+  const effectiveStreakDays = Math.max(currentStreakDays, input.remoteHabit?.currentStreakDays ?? 0);
+  const nextMilestoneDays = getNextMilestone(effectiveStreakDays);
+  const daysToNextMilestone = Math.max(0, nextMilestoneDays - effectiveStreakDays);
+  const milestoneProgressPercentage = nextMilestoneDays > 0
+    ? Math.min(100, Math.round((effectiveStreakDays / nextMilestoneDays) * 100))
+    : 0;
+  const isAtRisk = effectiveStreakDays > 0 && !hasTransactionToday;
+
+  return {
+    currentStreakDays: effectiveStreakDays,
+    daysToNextMilestone,
+    isAtRisk,
+    milestoneProgressPercentage,
+    nextMilestoneDays,
+    registrationCoveragePercentage: Math.max(registrationCoveragePercentage, input.remoteHabit?.registrationCoveragePercentage ?? 0),
+    message: getHabitMessage({
+      currentStreakDays,
+      daysToNextMilestone,
+      hasAnyTransaction,
+      hasTransactionToday,
+      isAtRisk,
+      nextMilestoneDays,
+    }),
+  };
+}
+
+function getElapsedPeriodDays(period: DashboardPeriod, today: Date) {
+  const todayKey = format(today, "yyyy-MM-dd");
+  const effectiveEnd = todayKey < period.endsAt ? todayKey : period.endsAt;
+
+  if (effectiveEnd < period.startsAt) {
+    return 0;
+  }
+
+  return differenceInCalendarDays(parseISO(effectiveEnd), parseISO(period.startsAt)) + 1;
+}
+
+function getNextMilestone(currentStreakDays: number) {
+  const milestones = [3, 7, 14, 30, 60, 100];
+  return milestones.find((milestone) => milestone > currentStreakDays) ?? currentStreakDays + 30;
+}
+
+function getHabitMessage(input: {
+  currentStreakDays: number;
+  daysToNextMilestone: number;
+  hasAnyTransaction: boolean;
+  hasTransactionToday: boolean;
+  isAtRisk: boolean;
+  nextMilestoneDays: number;
+}) {
+  if (!input.hasAnyTransaction) {
+    return "Registra tu primer movimiento para iniciar una racha financiera.";
+  }
+
+  if (input.isAtRisk) {
+    return `Tu racha de ${input.currentStreakDays} dia${input.currentStreakDays === 1 ? "" : "s"} sigue viva. Registra hoy para conservarla.`;
+  }
+
+  if (input.daysToNextMilestone === 0) {
+    return `Meta de ${input.nextMilestoneDays} dias alcanzada. Sigue acumulando claridad.`;
+  }
+
+  return `Faltan ${input.daysToNextMilestone} dia${input.daysToNextMilestone === 1 ? "" : "s"} para llegar a ${input.nextMilestoneDays} dias de racha.`;
 }
 
 function sumTransactions(transactions: Transaction[]) {

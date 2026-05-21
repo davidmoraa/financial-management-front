@@ -33,6 +33,13 @@ Redesign the main dashboard into the Financial Command Center while keeping the 
 - Added a richer transaction save reward animation with amount/category feedback and progress copy.
 - Transaction form now clears the amount immediately after a successful save.
 
+### 4. Financial streak incentive model
+
+- Financial streak now calculates from local transaction dates instead of staying fixed at the remote/default value.
+- The streak remains visible but marked as at risk when yesterday had activity and today does not.
+- Added progressive milestones at 3, 7, 14, 30, 60 and 100 days.
+- Added progress-to-next-milestone and days remaining to make the habit more motivating.
+
 Primary files
 
 - `src/pages/DashboardPage.tsx`
@@ -75,6 +82,7 @@ The dashboard should tell the user how the month is going, what can be spent saf
 - Unsynced local fixed expense payments are reflected immediately in dashboard metrics and upcoming payment state.
 - The user can switch dashboard scope between month, current biweekly period and current week.
 - Saving a transaction clears the capture form and shows a more rewarding confirmation animation.
+- The financial streak updates from real local records and shows the next milestone to encourage consistent use.
 - Desktop uses a two-column grid after the hero.
 - Mobile uses a single stacked column without horizontal overflow.
 - New users see a real empty state instead of demo data.

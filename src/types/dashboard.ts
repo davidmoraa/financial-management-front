@@ -82,6 +82,10 @@ export type DashboardSummary = {
   }>;
   habit: {
     currentStreakDays: number;
+    daysToNextMilestone?: number;
+    isAtRisk?: boolean;
+    milestoneProgressPercentage?: number;
+    nextMilestoneDays?: number;
     registrationCoveragePercentage: number;
     message: string;
   };
