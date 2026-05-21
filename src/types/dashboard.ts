@@ -10,6 +10,17 @@ export type DashboardRecommendedActionType =
 export type DashboardPriority = "low" | "medium" | "high";
 export type DashboardCategoryStatus = "ok" | "warning" | "danger";
 export type DashboardPeriodType = "monthly" | "biweekly" | "weekly";
+export type FinancialInsightType =
+  | "uncategorized_movements"
+  | "upcoming_fixed_expense"
+  | "category_overspending"
+  | "daily_spending_limit"
+  | "no_movements_today"
+  | "budget_exceeded"
+  | "cashflow_risk"
+  | "healthy_month"
+  | "saving_opportunity";
+export type FinancialInsightSeverity = "positive" | "info" | "warning" | "danger";
 
 export type DashboardPeriod = {
   type: DashboardPeriodType;
@@ -17,6 +28,19 @@ export type DashboardPeriod = {
   shortLabel: string;
   startsAt: string;
   endsAt: string;
+};
+
+export type FinancialInsight = {
+  id: string;
+  type: FinancialInsightType;
+  severity: FinancialInsightSeverity;
+  title: string;
+  description: string;
+  metricLabel?: string;
+  metricValue?: number;
+  ctaLabel?: string;
+  targetPath?: string;
+  priority: number;
 };
 
 export type DashboardSummary = {
@@ -63,6 +87,7 @@ export type DashboardSummary = {
     targetPath: string;
     priority: DashboardPriority;
   };
+  insights: FinancialInsight[];
   categoriesToWatch: Array<{
     categoryId: string;
     name: string;

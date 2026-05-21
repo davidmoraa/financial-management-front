@@ -30,6 +30,7 @@ const baseSummary: DashboardSummary = {
     used: 1000,
     usedPercentage: 20,
   },
+  insights: [],
   nextFixedExpense: {
     id: "fixed-1",
     name: "Internet",

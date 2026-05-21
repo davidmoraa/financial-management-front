@@ -40,6 +40,13 @@ Redesign the main dashboard into the Financial Command Center while keeping the 
 - Added progressive milestones at 3, 7, 14, 30, 60 and 100 days.
 - Added progress-to-next-milestone and days remaining to make the habit more motivating.
 
+### 5. Financial insights display
+
+- Added support for `insights` returned by the dashboard summary API.
+- Recommended action now renders the API-prioritized action title, description and CTA.
+- Added `Señales de tu mes`, showing up to three secondary insights after the primary recommended action.
+- Insight severity maps to compact visual states: positive, info, warning and danger.
+
 Primary files
 
 - `src/pages/DashboardPage.tsx`
@@ -53,6 +60,7 @@ Primary files
 - `src/components/dashboard/WatchCategoriesCard.tsx`
 - `src/components/dashboard/RecentMovementsCard.tsx`
 - `src/components/dashboard/FinancialStreakCard.tsx`
+- `src/components/dashboard/FinancialInsightsCard.tsx`
 - `src/components/dashboard/DashboardPeriodSelector.tsx`
 - `src/hooks/useDashboardSummary.ts`
 - `src/lib/dashboard/dashboardPeriod.ts`
@@ -83,6 +91,7 @@ The dashboard should tell the user how the month is going, what can be spent saf
 - The user can switch dashboard scope between month, current biweekly period and current week.
 - Saving a transaction clears the capture form and shows a more rewarding confirmation animation.
 - The financial streak updates from real local records and shows the next milestone to encourage consistent use.
+- The dashboard shows the primary recommended action and up to three secondary financial insights.
 - Desktop uses a two-column grid after the hero.
 - Mobile uses a single stacked column without horizontal overflow.
 - New users see a real empty state instead of demo data.

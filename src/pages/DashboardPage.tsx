@@ -6,6 +6,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardPeriodSelector } from "@/components/dashboard/DashboardPeriodSelector";
 import { FinancialStatusHero } from "@/components/dashboard/FinancialStatusHero";
 import { FinancialStreakCard } from "@/components/dashboard/FinancialStreakCard";
+import { FinancialInsightsCard } from "@/components/dashboard/FinancialInsightsCard";
 import { MonthlyRhythmCard } from "@/components/dashboard/MonthlyRhythmCard";
 import { RecentMovementsCard } from "@/components/dashboard/RecentMovementsCard";
 import { RecommendedActionCard } from "@/components/dashboard/RecommendedActionCard";
@@ -42,18 +43,19 @@ export function DashboardPage() {
           <FinancialStatusHero summary={dashboardSummary} />
 
           <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-            <div className="grid min-w-0 gap-4">
+            <div className="grid min-w-0 content-start gap-4 lg:order-2">
+              <RecommendedActionCard summary={dashboardSummary} />
+              <FinancialInsightsCard summary={dashboardSummary} />
+              <UpcomingFixedExpenseCard summary={dashboardSummary} />
+              <MonthlyRhythmCard summary={dashboardSummary} />
+              <FinancialStreakCard summary={dashboardSummary} />
+            </div>
+
+            <div className="grid min-w-0 gap-4 lg:order-1">
               <SafeToSpendCard summary={dashboardSummary} />
               <CashflowProjectionCard summary={dashboardSummary} />
               <WatchCategoriesCard summary={dashboardSummary} />
               <RecentMovementsCard summary={dashboardSummary} />
-            </div>
-
-            <div className="grid min-w-0 content-start gap-4">
-              <RecommendedActionCard summary={dashboardSummary} />
-              <UpcomingFixedExpenseCard summary={dashboardSummary} />
-              <MonthlyRhythmCard summary={dashboardSummary} />
-              <FinancialStreakCard summary={dashboardSummary} />
             </div>
           </section>
         </>

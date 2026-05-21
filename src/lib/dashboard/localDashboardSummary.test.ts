@@ -34,6 +34,7 @@ const emptyRemoteSummary: DashboardSummary = {
     used: 0,
     usedPercentage: 0,
   },
+  insights: [],
   categoriesToWatch: [],
   recentMovements: [],
   habit: {

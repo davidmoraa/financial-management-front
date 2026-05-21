@@ -40,6 +40,7 @@ function dashboardSummary(overrides: Partial<DashboardSummary> = {}): DashboardS
       used: 0,
       usedPercentage: 0,
     },
+    insights: [],
     categoriesToWatch: [],
     recentMovements: [],
     habit: {
@@ -124,5 +125,113 @@ describe("DashboardPage", () => {
     );
 
     expect(await screen.findByText("No pudimos cargar tu resumen financiero")).toBeInTheDocument();
+  });
+
+  it("muestra acción recomendada e insights secundarios del summary real", async () => {
+    fetchDashboardSummaryMock.mockResolvedValueOnce(
+      dashboardSummary({
+        balance: {
+          current: 9000,
+          projectedEndOfMonth: 7000,
+          status: "healthy",
+          message: "Vas bien este mes.",
+        },
+        income: {
+          expected: 10000,
+          received: 10000,
+          pending: 0,
+        },
+        expenses: {
+          spent: 1000,
+          fixedPending: 0,
+          variableSpent: 1000,
+        },
+        budget: {
+          monthlyBudget: 5000,
+          used: 1000,
+          usedPercentage: 20,
+        },
+        spendingPower: {
+          safeToSpendToday: 300,
+          recommendedDailySpend: 300,
+          remainingVariableBudget: 4000,
+        },
+        recommendedAction: {
+          type: "adjust_budget",
+          title: "Riesgo de flujo",
+          description: "Tu proyección indica que podrías cerrar el mes en negativo.",
+          ctaLabel: "Revisar plan del mes",
+          targetPath: "/",
+          priority: "high",
+        },
+        insights: [
+          {
+            id: "cashflow-risk",
+            type: "cashflow_risk",
+            severity: "danger",
+            title: "Riesgo de flujo",
+            description: "Tu proyección indica que podrías cerrar el mes en negativo.",
+            ctaLabel: "Revisar plan del mes",
+            targetPath: "/",
+            priority: 1,
+          },
+          {
+            id: "budget-exceeded",
+            type: "budget_exceeded",
+            severity: "danger",
+            title: "Presupuesto superado",
+            description: "Ya superaste tu presupuesto mensual.",
+            priority: 2,
+          },
+          {
+            id: "uncategorized",
+            type: "uncategorized_movements",
+            severity: "warning",
+            title: "Movimientos sin categoría",
+            description: "Tienes 2 movimientos sin categorizar.",
+            priority: 3,
+          },
+          {
+            id: "daily-limit",
+            type: "daily_spending_limit",
+            severity: "info",
+            title: "Gasto seguro para hoy",
+            description: "Puedes gastar hasta $300 hoy.",
+            priority: 6,
+          },
+          {
+            id: "healthy",
+            type: "healthy_month",
+            severity: "positive",
+            title: "Mes estable",
+            description: "Tu mes se ve estable.",
+            priority: 9,
+          },
+        ],
+        recentMovements: [
+          {
+            id: "tx-1",
+            description: "Comida",
+            categoryName: "Comida",
+            amount: 1000,
+            type: "expense",
+            date: "2026-05-20",
+          },
+        ],
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Riesgo de flujo")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /revisar plan del mes/i })).toBeInTheDocument();
+    expect(screen.getByText("Presupuesto superado")).toBeInTheDocument();
+    expect(screen.getByText("Movimientos sin categoría")).toBeInTheDocument();
+    expect(screen.getByText("Gasto seguro para hoy")).toBeInTheDocument();
+    expect(screen.queryByText("Mes estable")).not.toBeInTheDocument();
   });
 });

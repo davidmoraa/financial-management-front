@@ -150,6 +150,7 @@ export async function buildLocalDashboardSummary(
       hasMovementToday: periodTransactions.some((transaction) => isSameDay(parseISO(transaction.transactionDate), today)),
       nextFixedExpense,
     }),
+    insights: options.remoteSummary?.insights ?? [],
     categoriesToWatch: options.remoteSummary?.categoriesToWatch ?? [],
     recentMovements: periodTransactions.slice(0, 5).map(toRecentMovement),
     habit,
