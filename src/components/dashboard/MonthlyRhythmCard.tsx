@@ -1,6 +1,7 @@
 import { Activity, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { MonthlyProgressMicrocopy } from "@/components/dashboard/MonthlyProgressMicrocopy";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { DashboardSummary } from "@/types/dashboard";
@@ -46,11 +47,10 @@ export function MonthlyRhythmCard({ summary }: MonthlyRhythmCardProps) {
             <Icon className="h-4 w-4" aria-hidden="true" />
             {isRisk ? "Presupuesto excedido" : isWarning ? "Cerca del límite" : "Ritmo saludable"}
           </div>
+          <MonthlyProgressMicrocopy summary={summary} usedPercentage={usedPercentage} />
         </div>
       ) : (
-        <p className="mt-5 rounded-2xl bg-teal-50 px-4 py-3 text-sm font-semibold leading-6 text-teal-800">
-          Define tu presupuesto para activar el ritmo mensual y el gasto seguro.
-        </p>
+        <MonthlyProgressMicrocopy summary={summary} usedPercentage={usedPercentage} />
       )}
     </Card>
   );

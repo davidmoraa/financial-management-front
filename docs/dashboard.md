@@ -20,6 +20,7 @@ The page handles:
 - missing optional `recommendedAction`
 - empty `insights`, `categoriesToWatch`, `recentMovements`
 - missing `nextFixedExpense`
+- reduced-motion users
 
 ## safeToSpendToday
 
@@ -32,6 +33,15 @@ If it is missing, the card falls back to a safe local action that points to `/ne
 
 Secondary insights are shown in `FinancialInsightsCard`, capped to three items after the primary action.
 
+## Habit UX Layer
+
+- `MovementRegisteredFeedback` confirms saves with live-region status copy, registered amount/category and a short projection update.
+- `FinancialClarityBadge` summarizes whether the user's records are updated today.
+- `DashboardSkeleton` replaces static loading blocks with a calm reduced-motion-aware loading state.
+- `MonthlyProgressMicrocopy` turns budget status into brief, actionable habit copy.
+
+The experience avoids sound, heavy celebration effects and game-like badges.
+
 ## Regression Tests
 
 Run:
@@ -43,5 +53,6 @@ npm test
 Relevant tests:
 
 - `src/pages/DashboardPage.test.tsx`
+- `src/components/feedback/MovementRegisteredFeedback.test.tsx`
 
 The tests cover loading, error, empty state, healthy state, danger recommended action, missing optional dashboard lists and the three-insight display limit.

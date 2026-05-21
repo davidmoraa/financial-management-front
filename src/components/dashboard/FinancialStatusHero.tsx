@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { ArrowDownRight, ArrowUpRight, Gauge, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
@@ -16,6 +16,7 @@ const statusCopy = {
 };
 
 export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
+  const shouldReduceMotion = useReducedMotion();
   const isPositiveProjection = summary.balance.projectedEndOfMonth >= 0;
   const ProjectionIcon = isPositiveProjection ? ArrowUpRight : ArrowDownRight;
   const periodLabel = summary.period?.shortLabel.toLowerCase() ?? "mes";
@@ -27,9 +28,9 @@ export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 14 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
       className={cn(
         "overflow-hidden rounded-[1.8rem] p-5 text-primary-foreground shadow-lift md:p-7",
         summary.balance.status === "risk"

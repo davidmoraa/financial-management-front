@@ -55,6 +55,15 @@ Redesign the main dashboard into the Financial Command Center while keeping the 
 - Empty cards avoid extra movement CTAs so the primary `Nuevo movimiento` route stays clear.
 - Period selector dates are shown in Spanish-friendly readable format and expose pressed state for keyboard/screen-reader users.
 
+### 7. Habit UX polish
+
+- Replaced the post-save pulse with an accessible `MovementRegisteredFeedback` confirmation.
+- The confirmation shows the registered amount/category and a short projection update.
+- Added a financial clarity badge to the dashboard header.
+- Replaced basic loading blocks with a calm dashboard skeleton that respects reduced motion.
+- Added period progress microcopy focused on clarity, reservation of fixed payments and next action.
+- Dashboard transitions now respect reduced-motion preferences.
+
 Primary files
 
 - `src/pages/DashboardPage.tsx`
@@ -70,6 +79,10 @@ Primary files
 - `src/components/dashboard/FinancialStreakCard.tsx`
 - `src/components/dashboard/FinancialInsightsCard.tsx`
 - `src/components/dashboard/DashboardPeriodSelector.tsx`
+- `src/components/dashboard/DashboardSkeleton.tsx`
+- `src/components/dashboard/FinancialClarityBadge.tsx`
+- `src/components/dashboard/MonthlyProgressMicrocopy.tsx`
+- `src/components/feedback/MovementRegisteredFeedback.tsx`
 - `src/hooks/useDashboardSummary.ts`
 - `src/lib/dashboard/dashboardPeriod.ts`
 - `src/lib/dashboard/localDashboardSummary.ts`

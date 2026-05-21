@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { AlertTriangle, CalendarClock, LoaderCircle, Plus } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
+import { AlertTriangle, CalendarClock, Plus } from "lucide-react";
 import { CashflowProjectionCard } from "@/components/dashboard/CashflowProjectionCard";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardPeriodSelector } from "@/components/dashboard/DashboardPeriodSelector";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { FinancialStatusHero } from "@/components/dashboard/FinancialStatusHero";
 import { FinancialStreakCard } from "@/components/dashboard/FinancialStreakCard";
 import { FinancialInsightsCard } from "@/components/dashboard/FinancialInsightsCard";
@@ -26,20 +28,27 @@ export function DashboardPage() {
   const period = useMemo(() => getDashboardPeriod(periodType, currentDate), [currentDate, periodType]);
   const { data: dashboardSummary, error, isLoading } = useDashboardSummary(month, period);
   const isEmpty = dashboardSummary ? isDashboardSummaryEmpty(dashboardSummary) : false;
+  const shouldReduceMotion = useReducedMotion();
 
   return (
     <div className="space-y-5 md:space-y-6">
-      <DashboardHeader currentDate={currentDate} />
+      <DashboardHeader currentDate={currentDate} summary={dashboardSummary} />
       <DashboardPeriodSelector value={periodType} period={period} onChange={setPeriodType} />
 
-      {isLoading && !dashboardSummary && <DashboardLoadingState />}
+      {isLoading && !dashboardSummary && <DashboardSkeleton />}
 
       {error && <DashboardErrorState hasData={Boolean(dashboardSummary)} />}
 
       {dashboardSummary && isEmpty && <DashboardEmptyState />}
 
       {dashboardSummary && !isEmpty && (
-        <>
+        <motion.div
+          key={`${dashboardSummary.balance.status}-${period.type}`}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+          className="space-y-5 md:space-y-6"
+        >
           <FinancialStatusHero summary={dashboardSummary} />
 
           <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
@@ -58,25 +67,9 @@ export function DashboardPage() {
               <RecentMovementsCard summary={dashboardSummary} />
             </div>
           </section>
-        </>
+        </motion.div>
       )}
     </div>
-  );
-}
-
-function DashboardLoadingState() {
-  return (
-    <section className="rounded-[1.6rem] border border-teal-100 bg-white/78 p-5 shadow-soft">
-      <div className="flex items-center gap-3 text-sm font-bold text-muted-foreground">
-        <LoaderCircle className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
-        Cargando command center...
-      </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-3">
-        <div className="h-28 rounded-3xl bg-teal-50/80" />
-        <div className="h-28 rounded-3xl bg-teal-50/80" />
-        <div className="h-28 rounded-3xl bg-teal-50/80" />
-      </div>
-    </section>
   );
 }
 

@@ -70,7 +70,7 @@ describe("DashboardPage", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("Cargando command center...")).toBeInTheDocument();
+    expect(screen.getByText("Preparando tu lectura financiera...")).toBeInTheDocument();
   });
 
   it("muestra empty state real cuando la API no devuelve datos", async () => {
@@ -295,6 +295,7 @@ describe("DashboardPage", () => {
 
     expect(await screen.findByText("Tu mes va bajo control.")).toBeInTheDocument();
     expect(screen.getByText("Mes saludable")).toBeInTheDocument();
+    expect(screen.getByText("Claridad por actualizar")).toBeInTheDocument();
   });
 
   it("no truena cuando no hay recientes, categorías o próximo gasto fijo", async () => {

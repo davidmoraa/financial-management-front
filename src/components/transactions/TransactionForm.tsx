@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
+import { differenceInCalendarDays, endOfMonth, format, parseISO } from "date-fns";
 import { CalendarDays, CloudOff, Coins, FileText, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { motion } from "motion/react";
@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { SuccessPulse } from "@/components/feedback/SuccessPulse";
+import { MovementRegisteredFeedback } from "@/components/feedback/MovementRegisteredFeedback";
 import { CategoryQuickSelect } from "@/components/transactions/CategoryQuickSelect";
 import { PaymentMethodSelect } from "@/components/transactions/PaymentMethodSelect";
 import { TransactionTypeToggle } from "@/components/transactions/TransactionTypeToggle";
@@ -18,6 +18,7 @@ import { useNetworkStore } from "@/stores/networkStore";
 import { useCategoryStore } from "@/stores/categoryStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 import type { PaymentMethod, TransactionType } from "@/types/finance";
+import { formatCurrency } from "@/lib/formatters";
 
 const today = () => format(new Date(), "yyyy-MM-dd");
 
@@ -46,6 +47,7 @@ export function TransactionForm() {
   const [savedReward, setSavedReward] = useState<{
     amount: number;
     categoryName: string;
+    projectionCopy: string;
     type: TransactionType;
   }>();
   const successTimer = useRef<number | undefined>(undefined);
@@ -85,10 +87,17 @@ export function TransactionForm() {
 
   const onSubmit = async (values: TransactionFormValues) => {
     const transaction = await addTransaction(values);
+    const monthlySummary = useTransactionStore.getState().getMonthlySummary(parseISO(values.transactionDate));
     reset(getInitialValues(values.type, values.paymentMethod));
     setSavedReward({
       amount: transaction.amount,
       categoryName: transaction.categoryName,
+      projectionCopy: getProjectionCopy({
+        balance: monthlySummary.balance,
+        budget: monthlySummary.budget,
+        expense: monthlySummary.expense,
+        transactionType: transaction.type,
+      }),
       type: transaction.type,
     });
     setOfflineSaved(!isOnline);
@@ -106,9 +115,10 @@ export function TransactionForm() {
 
   return (
     <>
-      <SuccessPulse
+      <MovementRegisteredFeedback
         amount={savedReward?.amount}
         categoryName={savedReward?.categoryName}
+        projectionCopy={savedReward?.projectionCopy}
         show={showSuccess}
         type={savedReward?.type}
       />
@@ -204,4 +214,25 @@ export function TransactionForm() {
       </Card>
     </>
   );
+}
+
+function getProjectionCopy(input: {
+  balance: number;
+  budget: number;
+  expense: number;
+  transactionType: TransactionType;
+}) {
+  if (input.transactionType === "income") {
+    return `Ingreso registrado. Tu balance del mes queda en ${formatCurrency(input.balance)}.`;
+  }
+
+  if (input.budget > 0) {
+    const remainingBudget = Math.max(0, input.budget - input.expense);
+    const daysRemaining = Math.max(1, differenceInCalendarDays(endOfMonth(new Date()), new Date()) + 1);
+    const safeDailySpend = remainingBudget / daysRemaining;
+
+    return `Después de este gasto, puedes gastar ${formatCurrency(safeDailySpend)} diarios el resto del mes.`;
+  }
+
+  return "Movimiento registrado. Tu proyección se actualizó.";
 }
