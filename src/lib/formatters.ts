@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import type { PaymentMethod } from "@/types/finance";
 
@@ -17,8 +17,12 @@ export function formatSignedCurrency(amount: number, type: "income" | "expense")
   return `${sign}${formatCurrency(Math.abs(amount))}`;
 }
 
+export function parseAppDate(date: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? parseISO(date) : new Date(date);
+}
+
 export function formatTransactionDate(date: string) {
-  return format(new Date(date), "d MMM yyyy", { locale: es });
+  return format(parseAppDate(date), "d MMM yyyy", { locale: es });
 }
 
 export function formatShortDate(date: Date) {

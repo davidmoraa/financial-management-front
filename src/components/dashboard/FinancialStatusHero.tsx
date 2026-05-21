@@ -1,8 +1,6 @@
-import { Link } from "react-router-dom";
 import { motion } from "motion/react";
-import { ArrowDownRight, ArrowUpRight, Gauge, Plus, ShieldCheck } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Gauge, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { DashboardSummary } from "@/types/dashboard";
@@ -15,6 +13,12 @@ const statusCopy = {
   healthy: "Mes saludable",
   warning: "Ritmo a vigilar",
   risk: "Riesgo de presupuesto",
+};
+
+const statusTitle = {
+  healthy: "Tu mes va bajo control.",
+  warning: "Tu ritmo necesita atención.",
+  risk: "Conviene ajustar hoy.",
 };
 
 export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
@@ -35,15 +39,16 @@ export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
             : "bg-gradient-to-br from-teal-800 via-primary to-teal-600",
       )}
     >
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.75fr)] lg:items-end">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.06fr)_minmax(18rem,0.74fr)] lg:items-end">
         <div className="min-w-0">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/14 px-3 py-1.5 text-sm font-bold text-teal-50">
             <ShieldCheck className="h-4 w-4 text-lime-200" aria-hidden="true" />
             {statusCopy[summary.balance.status]}
           </div>
-          <h2 className="mt-5 max-w-2xl text-3xl font-black tracking-normal md:text-5xl">
+          <h2 className="mt-5 max-w-2xl text-3xl font-black tracking-normal md:text-5xl">{statusTitle[summary.balance.status]}</h2>
+          <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-teal-50/82 md:text-base">
             {summary.balance.message}
-          </h2>
+          </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <HeroMetric
               label="Balance proyectado"
@@ -59,20 +64,24 @@ export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
         </div>
 
         <div className="min-w-0 rounded-[1.4rem] bg-white/12 p-4 ring-1 ring-white/16 backdrop-blur">
-          <p className="text-sm font-bold text-teal-50/85">Acción primaria</p>
-          <p className="mt-2 text-xl font-black text-white">Registra el siguiente movimiento</p>
-          <p className="mt-2 text-sm font-semibold leading-6 text-teal-50/80">
-            Mantener el registro diario mejora tu gasto seguro y las alertas del mes.
-          </p>
-          <Button asChild size="lg" className="mt-4 w-full bg-white text-primary hover:bg-teal-50">
-            <Link to="/new">
-              <Plus className="h-5 w-5" aria-hidden="true" />
-              Nuevo movimiento
-            </Link>
-          </Button>
+          <p className="text-sm font-bold text-teal-50/85">Lectura rápida</p>
+          <div className="mt-4 grid gap-2">
+            <HeroInsight label="Balance actual" value={formatCurrency(summary.balance.current)} />
+            <HeroInsight label="Ingreso pendiente" value={formatCurrency(summary.income.pending)} />
+            <HeroInsight label="Fijos pendientes" value={formatCurrency(summary.expenses.fixedPending)} />
+          </div>
         </div>
       </div>
     </motion.section>
+  );
+}
+
+function HeroInsight({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-white/12 px-3 py-3 ring-1 ring-white/10">
+      <span className="min-w-0 truncate text-sm font-bold text-teal-50/78">{label}</span>
+      <span className="shrink-0 text-sm font-black text-white">{value}</span>
+    </div>
   );
 }
 

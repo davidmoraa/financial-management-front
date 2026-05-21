@@ -11,13 +11,19 @@ type RecommendedActionCardProps = {
 
 export function RecommendedActionCard({ summary }: RecommendedActionCardProps) {
   const action = summary.recommendedAction;
+  const usesGlobalPrimaryAction = !action || action.type === "register_movement" || action.targetPath === "/new";
+  const eyebrow = usesGlobalPrimaryAction ? "Rutina diaria" : "Siguiente acción";
+  const title = usesGlobalPrimaryAction ? "Mantén el registro al día" : action.title;
+  const description = usesGlobalPrimaryAction
+    ? "Cuando registres cada movimiento al momento, el gasto seguro y las alertas se mantienen precisas."
+    : action.description;
 
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black uppercase tracking-normal text-primary">Siguiente acción</p>
-          <h2 className="mt-1 text-lg font-black tracking-normal text-foreground">{action?.title ?? "Mantén el ritmo"}</h2>
+          <p className="text-sm font-black uppercase tracking-normal text-primary">{eyebrow}</p>
+          <h2 className="mt-1 text-lg font-black tracking-normal text-foreground">{title}</h2>
         </div>
         <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", priorityClass(action?.priority))}>
           <Lightbulb className="h-5 w-5" aria-hidden="true" />
@@ -25,15 +31,21 @@ export function RecommendedActionCard({ summary }: RecommendedActionCardProps) {
       </div>
 
       <p className="mt-4 text-sm font-semibold leading-6 text-muted-foreground">
-        {action?.description ?? "Registra movimientos al momento para mantener el dashboard preciso."}
+        {description}
       </p>
 
-      <Button asChild className="mt-5 w-full" variant={action?.priority === "high" ? "default" : "outline"}>
-        <Link to={action?.targetPath ?? "/new"}>
-          {action?.ctaLabel ?? "Nuevo movimiento"}
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </Link>
-      </Button>
+      {usesGlobalPrimaryAction ? (
+        <div className="mt-5 rounded-2xl bg-teal-50 px-3 py-3 text-sm font-black leading-6 text-teal-800">
+          Sin acciones adicionales por ahora.
+        </div>
+      ) : (
+        <Button asChild className="mt-5 w-full" variant={action?.priority === "high" ? "default" : "outline"}>
+          <Link to={action.targetPath}>
+            {action.ctaLabel}
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </Button>
+      )}
     </Card>
   );
 }

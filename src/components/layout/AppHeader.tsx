@@ -30,6 +30,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
 export function AppHeader() {
   const location = useLocation();
   const copy = pageTitles[location.pathname] ?? pageTitles["/"];
+  const showNewMovementAction = location.pathname !== "/" && location.pathname !== "/new";
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/60 bg-background/72 backdrop-blur-xl">
@@ -44,7 +45,7 @@ export function AppHeader() {
 
         <div className="flex shrink-0 items-center gap-2">
           <SyncStatusBadge className="hidden sm:inline-flex" />
-          {location.pathname !== "/new" && (
+          {showNewMovementAction && (
             <Button asChild className="hidden md:inline-flex" size="md">
               <Link to="/new">
                 <Plus className="h-4 w-4" aria-hidden="true" />

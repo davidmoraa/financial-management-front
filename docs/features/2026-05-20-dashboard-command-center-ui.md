@@ -19,6 +19,13 @@ Redesign the main dashboard into the Financial Command Center while keeping the 
 - Added loading, error and empty states that do not depend on mock data.
 - Preserved the existing global shell, sidebar and mobile dock.
 
+### 2. Local pending data consistency
+
+- Dashboard summary now overlays real local IndexedDB records on top of the remote API summary.
+- Fixed expense payments created locally count immediately as real expenses in the dashboard while they are still pending sync.
+- Paid fixed expenses are excluded from `nextFixedExpense` so they do not keep appearing as pending payments.
+- Date-only values such as `2026-05-20` are parsed as local calendar dates to avoid showing the previous day.
+
 Primary files
 
 - `src/pages/DashboardPage.tsx`
@@ -32,6 +39,9 @@ Primary files
 - `src/components/dashboard/WatchCategoriesCard.tsx`
 - `src/components/dashboard/RecentMovementsCard.tsx`
 - `src/components/dashboard/FinancialStreakCard.tsx`
+- `src/hooks/useDashboardSummary.ts`
+- `src/lib/dashboard/localDashboardSummary.ts`
+- `src/lib/formatters.ts`
 
 ## Impacto en base de datos
 
@@ -51,6 +61,7 @@ The dashboard should tell the user how the month is going, what can be spent saf
 ## Behavior After This Feature
 
 - The dashboard uses the real `DashboardSummary` API contract through `useDashboardSummary`.
+- Unsynced local fixed expense payments are reflected immediately in dashboard metrics and upcoming payment state.
 - Desktop uses a two-column grid after the hero.
 - Mobile uses a single stacked column without horizontal overflow.
 - New users see a real empty state instead of demo data.
@@ -60,6 +71,7 @@ The dashboard should tell the user how the month is going, what can be spent saf
 - This phase does not add offline dashboard snapshot caching.
 - Category budget quality depends on the backend summary contract.
 - The previous dashboard adapter remains available for tests and compatibility, but `DashboardPage` now renders directly from `DashboardSummary`.
+- The dashboard still needs a product decision for how visibly to label summaries that include unsynced local records.
 
 ## Follow-up Candidates
 

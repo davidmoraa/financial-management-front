@@ -1,9 +1,10 @@
+import { format } from "date-fns";
 import type { TransactionType } from "@/types/finance";
 import type { BudgetWarning, MonthlyForecast } from "@/types/fixedExpenses";
 import type { DashboardSummary } from "@/types/dashboard";
 
 export function getDashboardMonthKey(date: Date) {
-  return date.toISOString().slice(0, 7);
+  return format(date, "yyyy-MM");
 }
 
 export function isDashboardSummaryEmpty(summary: DashboardSummary) {
