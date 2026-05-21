@@ -10,6 +10,8 @@ type WatchCategoriesCardProps = {
 };
 
 export function WatchCategoriesCard({ summary }: WatchCategoriesCardProps) {
+  const categories = summary.categoriesToWatch ?? [];
+
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
@@ -23,8 +25,8 @@ export function WatchCategoriesCard({ summary }: WatchCategoriesCardProps) {
       </div>
 
       <div className="mt-5 space-y-3">
-        {summary.categoriesToWatch.length > 0 ? (
-          summary.categoriesToWatch.slice(0, 4).map((category) => (
+        {categories.length > 0 ? (
+          categories.slice(0, 4).map((category) => (
             <div key={category.categoryId} className="rounded-[1.25rem] border border-border bg-white/70 p-3">
               <div className="flex min-w-0 items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -32,11 +34,11 @@ export function WatchCategoriesCard({ summary }: WatchCategoriesCardProps) {
                   <p className="mt-1 text-xs font-semibold text-muted-foreground">{formatCurrency(category.spent)} gastado</p>
                 </div>
                 <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-xs font-black", statusClass(category.status))}>
-                  {category.percentage}%
+                  {Number.isFinite(category.percentage) ? category.percentage : 0}%
                 </span>
               </div>
               <Progress
-                value={category.percentage}
+                value={Number.isFinite(category.percentage) ? category.percentage : 0}
                 className="mt-3"
                 indicatorClassName={category.status === "danger" ? "bg-red-500" : category.status === "warning" ? "bg-amber-400" : "bg-primary"}
               />

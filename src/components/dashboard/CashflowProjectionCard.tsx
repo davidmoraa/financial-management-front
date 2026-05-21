@@ -30,7 +30,7 @@ export function CashflowProjectionCard({ summary }: CashflowProjectionCardProps)
 
       <div className="mt-4 rounded-[1.25rem] bg-teal-50/80 p-4">
         <p className="text-sm font-bold text-teal-800">Cierre proyectado</p>
-        <p className="mt-1 text-2xl font-black text-foreground">{formatCurrency(summary.balance.projectedEndOfMonth)}</p>
+        <p className="mt-1 truncate text-2xl font-black text-foreground">{formatCurrency(summary.balance.projectedEndOfMonth)}</p>
       </div>
     </Card>
   );

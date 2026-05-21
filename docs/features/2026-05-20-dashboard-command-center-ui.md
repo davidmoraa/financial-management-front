@@ -47,6 +47,14 @@ Redesign the main dashboard into the Financial Command Center while keeping the 
 - Added `Señales de tu mes`, showing up to three secondary insights after the primary recommended action.
 - Insight severity maps to compact visual states: positive, info, warning and danger.
 
+### 6. Production hardening
+
+- Dashboard components now tolerate empty optional arrays and missing optional action/payment fields.
+- `useDashboardSummary` fetches the remote monthly summary only when the month changes; local cache, sync and period changes recompute locally without duplicating API requests.
+- Financial amounts and progress values are normalized to avoid `NaN` or visual overflow.
+- Empty cards avoid extra movement CTAs so the primary `Nuevo movimiento` route stays clear.
+- Period selector dates are shown in Spanish-friendly readable format and expose pressed state for keyboard/screen-reader users.
+
 Primary files
 
 - `src/pages/DashboardPage.tsx`
@@ -68,6 +76,7 @@ Primary files
 - `src/lib/formatters.ts`
 - `src/components/feedback/SuccessPulse.tsx`
 - `src/components/transactions/TransactionForm.tsx`
+- `docs/dashboard.md`
 
 ## Impacto en base de datos
 

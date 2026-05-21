@@ -11,8 +11,9 @@ type MonthlyRhythmCardProps = {
 
 export function MonthlyRhythmCard({ summary }: MonthlyRhythmCardProps) {
   const hasBudget = summary.budget.monthlyBudget > 0;
-  const isRisk = summary.budget.usedPercentage >= 100;
-  const isWarning = summary.budget.usedPercentage >= 80 && !isRisk;
+  const usedPercentage = Number.isFinite(summary.budget.usedPercentage) ? summary.budget.usedPercentage : 0;
+  const isRisk = usedPercentage >= 100;
+  const isWarning = usedPercentage >= 80 && !isRisk;
   const Icon = isRisk || isWarning ? AlertTriangle : CheckCircle2;
   const periodLabel = summary.period?.shortLabel.toLowerCase() ?? "mes";
 
@@ -22,7 +23,7 @@ export function MonthlyRhythmCard({ summary }: MonthlyRhythmCardProps) {
         <div>
           <p className="text-sm font-black uppercase tracking-normal text-primary">Ritmo del periodo</p>
           <h2 className="mt-1 text-lg font-black tracking-normal text-foreground">
-            {hasBudget ? `${summary.budget.usedPercentage}% usado` : "Presupuesto pendiente"}
+            {hasBudget ? `${usedPercentage}% usado` : "Presupuesto pendiente"}
           </h2>
         </div>
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-lime-100 text-lime-700">
@@ -33,7 +34,7 @@ export function MonthlyRhythmCard({ summary }: MonthlyRhythmCardProps) {
       {hasBudget ? (
         <div className="mt-5">
           <Progress
-            value={summary.budget.usedPercentage}
+            value={usedPercentage}
             indicatorClassName={cn(isRisk ? "bg-red-500" : isWarning ? "bg-amber-400" : "bg-primary")}
           />
           <div className="mt-4 grid gap-2">

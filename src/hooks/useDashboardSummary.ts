@@ -11,8 +11,16 @@ type DashboardSummaryState = {
   isLoading: boolean;
 };
 
+type RemoteDashboardSummaryState = {
+  error?: Error;
+  isLoading: boolean;
+  month?: string;
+  summary?: DashboardSummary;
+};
+
 export function useDashboardSummary(month: string, period?: DashboardPeriod) {
   const [state, setState] = useState<DashboardSummaryState>({ isLoading: true });
+  const [remoteState, setRemoteState] = useState<RemoteDashboardSummaryState>({ isLoading: true });
   const transactionVersion = useTransactionStore((store) =>
     store.transactions.map((transaction) => `${transaction.id}:${transaction.updatedAt}:${transaction.deletedAt ?? ""}`).join("|"),
   );
@@ -28,39 +36,90 @@ export function useDashboardSummary(month: string, period?: DashboardPeriod) {
   useEffect(() => {
     let cancelled = false;
 
-    setState((current) => ({ data: current.data, isLoading: true }));
+    setRemoteState((current) => ({
+      error: undefined,
+      isLoading: true,
+      month,
+      summary: current.month === month ? current.summary : undefined,
+    }));
 
-    async function loadDashboardSummary() {
-      let remoteSummary: DashboardSummary | undefined;
-      let remoteError: Error | undefined;
-
+    async function loadRemoteSummary() {
       try {
-        remoteSummary = await fetchDashboardSummary(month);
-      } catch (error) {
-        remoteError = error instanceof Error ? error : new Error("No se pudo cargar el dashboard.");
-      }
-
-      const localSummary = await buildLocalDashboardSummary(month, { period, remoteSummary });
-
-      if (!cancelled) {
-        const summary = localSummary ?? remoteSummary;
-        if (summary) {
-          setState({
-            data: summary,
+        const summary = await fetchDashboardSummary(month);
+        if (!cancelled) {
+          setRemoteState({
             error: undefined,
             isLoading: false,
+            month,
+            summary,
           });
-          return;
         }
-
-        setState({
-          error: remoteError ?? new Error("No se pudo cargar el dashboard."),
-          isLoading: false,
-        });
+      } catch (error) {
+        if (!cancelled) {
+          setRemoteState((current) => ({
+            error: error instanceof Error ? error : new Error("No se pudo cargar el dashboard."),
+            isLoading: false,
+            month,
+            summary: current.month === month ? current.summary : undefined,
+          }));
+        }
       }
     }
 
-    loadDashboardSummary()
+    loadRemoteSummary()
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setRemoteState({
+            error: error instanceof Error ? error : new Error("No se pudo cargar el dashboard."),
+            isLoading: false,
+            month,
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [month]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function composeDashboardSummary() {
+      const isRemoteForRequestedMonth = remoteState.month === month;
+      const remoteSummary = isRemoteForRequestedMonth ? remoteState.summary : undefined;
+      const localSummary = await buildLocalDashboardSummary(month, { period, remoteSummary });
+
+      if (cancelled) {
+        return;
+      }
+
+      const summary = localSummary ?? remoteSummary;
+      if (summary) {
+        setState({
+          data: summary,
+          error: isRemoteForRequestedMonth ? remoteState.error : undefined,
+          isLoading: false,
+        });
+        return;
+      }
+
+      if (!isRemoteForRequestedMonth || remoteState.isLoading) {
+        setState((current) => ({
+          data: current.data,
+          error: undefined,
+          isLoading: true,
+        }));
+        return;
+      }
+
+      setState({
+        error: remoteState.error ?? new Error("No se pudo cargar el dashboard."),
+        isLoading: false,
+      });
+    }
+
+    composeDashboardSummary()
       .catch((error: unknown) => {
         if (!cancelled) {
           setState({
@@ -82,6 +141,10 @@ export function useDashboardSummary(month: string, period?: DashboardPeriod) {
     period?.endsAt,
     period?.startsAt,
     period?.type,
+    remoteState.error,
+    remoteState.isLoading,
+    remoteState.month,
+    remoteState.summary,
     transactionVersion,
   ]);
 

@@ -9,7 +9,7 @@ export function getDashboardMonthKey(date: Date) {
 
 export function isDashboardSummaryEmpty(summary: DashboardSummary) {
   return (
-    summary.recentMovements.length === 0 &&
+    (summary.recentMovements ?? []).length === 0 &&
     summary.income.received === 0 &&
     summary.expenses.spent === 0 &&
     summary.expenses.fixedPending === 0
@@ -108,7 +108,7 @@ function buildWarnings(summary: DashboardSummary): BudgetWarning[] {
     });
   }
 
-  const categoryWarning = summary.categoriesToWatch.find((category) => category.status !== "ok");
+  const categoryWarning = (summary.categoriesToWatch ?? []).find((category) => category.status !== "ok");
   if (categoryWarning) {
     warnings.push({
       id: `dashboard-category-${categoryWarning.categoryId}`,

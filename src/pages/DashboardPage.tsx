@@ -34,7 +34,7 @@ export function DashboardPage() {
 
       {isLoading && !dashboardSummary && <DashboardLoadingState />}
 
-      {error && <DashboardErrorState />}
+      {error && <DashboardErrorState hasData={Boolean(dashboardSummary)} />}
 
       {dashboardSummary && isEmpty && <DashboardEmptyState />}
 
@@ -80,15 +80,19 @@ function DashboardLoadingState() {
   );
 }
 
-function DashboardErrorState() {
+function DashboardErrorState({ hasData = false }: { hasData?: boolean }) {
   return (
     <section className="rounded-[1.6rem] border border-red-100 bg-red-50 p-5 shadow-soft">
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-1 h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
         <div>
-          <h2 className="text-lg font-black tracking-normal text-red-950">No pudimos cargar tu resumen financiero</h2>
+          <h2 className="text-lg font-black tracking-normal text-red-950">
+            {hasData ? "No pudimos actualizar tu resumen financiero" : "No pudimos cargar tu resumen financiero"}
+          </h2>
           <p className="mt-1 text-sm font-semibold leading-6 text-red-700">
-            Revisa tu conexión o intenta de nuevo. Tus registros locales no se borran.
+            {hasData
+              ? "Mostramos los datos disponibles en este dispositivo. Intenta sincronizar de nuevo cuando tengas conexión."
+              : "Revisa tu conexión o intenta de nuevo. Tus registros locales no se borran."}
           </p>
         </div>
       </div>

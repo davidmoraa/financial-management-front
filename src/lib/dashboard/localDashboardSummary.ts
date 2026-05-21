@@ -159,7 +159,7 @@ export async function buildLocalDashboardSummary(
 
 function isRemoteSummaryEmpty(summary: DashboardSummary) {
   return (
-    summary.recentMovements.length === 0 &&
+    (summary.recentMovements ?? []).length === 0 &&
     summary.income.received === 0 &&
     summary.expenses.spent === 0 &&
     summary.expenses.fixedPending === 0 &&

@@ -43,11 +43,13 @@ export function FinancialInsightsCard({ summary }: FinancialInsightsCardProps) {
 }
 
 function getSecondaryInsights(summary: DashboardSummary) {
-  if (!summary.insights.length) {
+  const insights = summary.insights ?? [];
+
+  if (!insights.length) {
     return [fallbackHealthyInsight];
   }
 
-  return summary.insights.slice(1, 4);
+  return insights.slice(1, 4);
 }
 
 function InsightItem({ insight }: { insight: FinancialInsight }) {
@@ -66,9 +68,9 @@ function InsightItem({ insight }: { insight: FinancialInsight }) {
               <p className="mt-1 text-sm font-semibold leading-6 text-muted-foreground">{insight.description}</p>
             </div>
             {typeof insight.metricValue === "number" && (
-              <div className="shrink-0 text-right">
-                {insight.metricLabel && <p className="text-[11px] font-bold uppercase tracking-normal text-muted-foreground">{insight.metricLabel}</p>}
-                <p className="text-sm font-black text-foreground">{formatInsightMetric(insight)}</p>
+              <div className="min-w-0 max-w-[7rem] shrink-0 text-right">
+                {insight.metricLabel && <p className="truncate text-[11px] font-bold uppercase tracking-normal text-muted-foreground">{insight.metricLabel}</p>}
+                <p className="truncate text-sm font-black text-foreground">{formatInsightMetric(insight)}</p>
               </div>
             )}
           </div>
@@ -76,7 +78,7 @@ function InsightItem({ insight }: { insight: FinancialInsight }) {
           {insight.ctaLabel && insight.targetPath && (
             <Link
               to={insight.targetPath}
-              className="mt-3 inline-flex items-center gap-2 text-sm font-black text-primary hover:text-teal-700"
+              className="mt-3 inline-flex items-center gap-2 rounded-lg text-sm font-black text-primary outline-none transition hover:text-teal-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               {insight.ctaLabel}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -89,15 +91,19 @@ function InsightItem({ insight }: { insight: FinancialInsight }) {
 }
 
 function formatInsightMetric(insight: FinancialInsight) {
+  const metricValue = typeof insight.metricValue === "number" && Number.isFinite(insight.metricValue)
+    ? insight.metricValue
+    : 0;
+
   if (insight.type === "budget_exceeded" || insight.type === "category_overspending") {
-    return `${insight.metricValue}%`;
+    return `${metricValue}%`;
   }
 
   if (insight.type === "uncategorized_movements") {
-    return String(insight.metricValue);
+    return String(metricValue);
   }
 
-  return formatCurrency(insight.metricValue ?? 0);
+  return formatCurrency(metricValue);
 }
 
 function getInsightIcon(severity: FinancialInsightSeverity) {

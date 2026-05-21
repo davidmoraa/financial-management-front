@@ -1,12 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { fetchDashboardSummary } from "@/services/dashboardApi";
 import type { DashboardSummary } from "@/types/dashboard";
 
 vi.mock("@/services/dashboardApi", () => ({
   fetchDashboardSummary: vi.fn(),
+}));
+
+vi.mock("@/lib/dashboard/localDashboardSummary", () => ({
+  buildLocalDashboardSummary: vi.fn(async (_month: string, options: { remoteSummary?: DashboardSummary }) => options.remoteSummary),
 }));
 
 const fetchDashboardSummaryMock = vi.mocked(fetchDashboardSummary);
@@ -53,6 +57,22 @@ function dashboardSummary(overrides: Partial<DashboardSummary> = {}): DashboardS
 }
 
 describe("DashboardPage", () => {
+  beforeEach(() => {
+    fetchDashboardSummaryMock.mockReset();
+  });
+
+  it("muestra loading state mientras carga el summary", () => {
+    fetchDashboardSummaryMock.mockReturnValueOnce(new Promise<DashboardSummary>(() => undefined));
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Cargando command center...")).toBeInTheDocument();
+  });
+
   it("muestra empty state real cuando la API no devuelve datos", async () => {
     fetchDashboardSummaryMock.mockResolvedValueOnce(dashboardSummary());
 
@@ -228,10 +248,93 @@ describe("DashboardPage", () => {
     );
 
     expect(await screen.findByText("Riesgo de flujo")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /revisar plan del mes/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /revisar plan del mes/i })).toHaveAttribute("href", "/");
     expect(screen.getByText("Presupuesto superado")).toBeInTheDocument();
     expect(screen.getByText("Movimientos sin categoría")).toBeInTheDocument();
     expect(screen.getByText("Gasto seguro para hoy")).toBeInTheDocument();
     expect(screen.queryByText("Mes estable")).not.toBeInTheDocument();
+  });
+
+  it("renderiza un dashboard saludable con datos reales", async () => {
+    fetchDashboardSummaryMock.mockResolvedValueOnce(
+      dashboardSummary({
+        balance: {
+          current: 7000,
+          projectedEndOfMonth: 9000,
+          status: "healthy",
+          message: "Vas bien este mes.",
+        },
+        income: {
+          expected: 10000,
+          received: 10000,
+          pending: 0,
+        },
+        expenses: {
+          spent: 3000,
+          fixedPending: 0,
+          variableSpent: 3000,
+        },
+        budget: {
+          monthlyBudget: 12000,
+          used: 3000,
+          usedPercentage: 25,
+        },
+        spendingPower: {
+          safeToSpendToday: 600,
+          recommendedDailySpend: 600,
+          remainingVariableBudget: 9000,
+        },
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Tu mes va bajo control.")).toBeInTheDocument();
+    expect(screen.getByText("Mes saludable")).toBeInTheDocument();
+  });
+
+  it("no truena cuando no hay recientes, categorías o próximo gasto fijo", async () => {
+    fetchDashboardSummaryMock.mockResolvedValueOnce(
+      dashboardSummary({
+        balance: {
+          current: 5000,
+          projectedEndOfMonth: 5000,
+          status: "healthy",
+          message: "Vas bien este mes.",
+        },
+        income: {
+          expected: 5000,
+          received: 5000,
+          pending: 0,
+        },
+        budget: {
+          monthlyBudget: 5000,
+          used: 0,
+          usedPercentage: 0,
+        },
+        spendingPower: {
+          safeToSpendToday: 300,
+          recommendedDailySpend: 300,
+          remainingVariableBudget: 5000,
+        },
+        categoriesToWatch: [],
+        nextFixedExpense: undefined,
+        recentMovements: [],
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("No hay pagos fijos pendientes este mes.")).toBeInTheDocument();
+    expect(screen.getByText("Sin categorías en alerta.")).toBeInTheDocument();
+    expect(screen.getByText("Aún no hay movimientos")).toBeInTheDocument();
   });
 });

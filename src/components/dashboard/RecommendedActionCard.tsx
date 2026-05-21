@@ -14,12 +14,12 @@ export function RecommendedActionCard({ summary }: RecommendedActionCardProps) {
   const title = action?.title ?? "Mantén el registro al día";
   const description = action?.description ?? "Cuando registres cada movimiento al momento, el gasto seguro y las alertas se mantienen precisas.";
   const ctaLabel = action?.ctaLabel ?? "Registrar movimiento";
-  const targetPath = action?.targetPath ?? "/new";
+  const targetPath = action?.targetPath?.trim() || "/new";
 
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-black uppercase tracking-normal text-primary">Acción recomendada</p>
           <h2 className="mt-1 text-lg font-black tracking-normal text-foreground">{title}</h2>
         </div>

@@ -9,12 +9,13 @@ export const currencyFormatter = new Intl.NumberFormat("es-MX", {
 });
 
 export function formatCurrency(amount: number) {
-  return currencyFormatter.format(amount);
+  return currencyFormatter.format(Number.isFinite(amount) ? amount : 0);
 }
 
 export function formatSignedCurrency(amount: number, type: "income" | "expense") {
   const sign = type === "income" ? "+" : "-";
-  return `${sign}${formatCurrency(Math.abs(amount))}`;
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+  return `${sign}${formatCurrency(Math.abs(safeAmount))}`;
 }
 
 export function parseAppDate(date: string) {

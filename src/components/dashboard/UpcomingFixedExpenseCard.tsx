@@ -32,7 +32,7 @@ export function UpcomingFixedExpenseCard({ summary }: UpcomingFixedExpenseCardPr
                 <p className="truncate text-lg font-black text-foreground">{next.name}</p>
                 <p className="mt-1 text-sm font-semibold text-muted-foreground">{formatTransactionDate(next.dueDate)}</p>
               </div>
-              <p className="shrink-0 text-lg font-black text-foreground">{formatCurrency(next.amount)}</p>
+              <p className="max-w-[8rem] shrink-0 truncate text-right text-lg font-black text-foreground">{formatCurrency(next.amount)}</p>
             </div>
             <p className="mt-3 rounded-2xl bg-white/80 px-3 py-2 text-sm font-bold text-teal-800">
               {next.daysLeft < 0 ? "Pago vencido" : next.daysLeft === 0 ? "Vence hoy" : `Faltan ${next.daysLeft} días`}

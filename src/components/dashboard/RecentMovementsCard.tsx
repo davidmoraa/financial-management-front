@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, ReceiptText } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatSignedCurrency, formatTransactionDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -11,6 +10,8 @@ type RecentMovementsCardProps = {
 };
 
 export function RecentMovementsCard({ summary }: RecentMovementsCardProps) {
+  const movements = summary.recentMovements ?? [];
+
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
@@ -24,8 +25,8 @@ export function RecentMovementsCard({ summary }: RecentMovementsCardProps) {
       </div>
 
       <div className="mt-4 divide-y divide-border/70">
-        {summary.recentMovements.length > 0 ? (
-          summary.recentMovements.slice(0, 5).map((movement) => {
+        {movements.length > 0 ? (
+          movements.slice(0, 5).map((movement) => {
             const isIncome = movement.type === "income";
             const Icon = isIncome ? ArrowUpRight : ArrowDownLeft;
 
@@ -53,15 +54,14 @@ export function RecentMovementsCard({ summary }: RecentMovementsCardProps) {
         ) : (
           <div className="py-6 text-center">
             <p className="text-sm font-black text-foreground">Aún no hay movimientos</p>
-            <p className="mt-1 text-sm font-semibold text-muted-foreground">Registra el primero para ver tu actividad aquí.</p>
-            <Button asChild className="mt-4">
-              <Link to="/new">Nuevo movimiento</Link>
-            </Button>
+            <p className="mx-auto mt-1 max-w-xs text-sm font-semibold leading-6 text-muted-foreground">
+              Usa el botón principal “Nuevo movimiento” para activar tu actividad reciente.
+            </p>
           </div>
         )}
       </div>
 
-      <Link to="/history" className="mt-3 flex items-center justify-between rounded-2xl bg-teal-50/70 px-3 py-3 text-sm font-black text-primary">
+      <Link to="/history" className="mt-3 flex items-center justify-between rounded-2xl bg-teal-50/70 px-3 py-3 text-sm font-black text-primary outline-none transition hover:bg-teal-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
         Ver historial
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>

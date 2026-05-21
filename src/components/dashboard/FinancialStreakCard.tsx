@@ -8,9 +8,17 @@ type FinancialStreakCardProps = {
 };
 
 export function FinancialStreakCard({ summary }: FinancialStreakCardProps) {
-  const nextMilestoneDays = summary.habit.nextMilestoneDays ?? getNextMilestone(summary.habit.currentStreakDays);
-  const daysToNextMilestone = summary.habit.daysToNextMilestone ?? Math.max(0, nextMilestoneDays - summary.habit.currentStreakDays);
-  const milestoneProgressPercentage = summary.habit.milestoneProgressPercentage ?? Math.min(100, Math.round((summary.habit.currentStreakDays / nextMilestoneDays) * 100));
+  const currentStreakDays = Number.isFinite(summary.habit.currentStreakDays) ? Math.max(0, summary.habit.currentStreakDays) : 0;
+  const nextMilestoneDays = Math.max(1, summary.habit.nextMilestoneDays ?? getNextMilestone(currentStreakDays));
+  const rawDaysToNextMilestone = summary.habit.daysToNextMilestone ?? Math.max(0, nextMilestoneDays - currentStreakDays);
+  const daysToNextMilestone = Number.isFinite(rawDaysToNextMilestone) ? Math.max(0, rawDaysToNextMilestone) : 0;
+  const rawMilestoneProgressPercentage = summary.habit.milestoneProgressPercentage ?? Math.round((currentStreakDays / nextMilestoneDays) * 100);
+  const milestoneProgressPercentage = Number.isFinite(rawMilestoneProgressPercentage)
+    ? Math.min(100, Math.max(0, rawMilestoneProgressPercentage))
+    : 0;
+  const registrationCoveragePercentage = Number.isFinite(summary.habit.registrationCoveragePercentage)
+    ? Math.min(100, Math.max(0, summary.habit.registrationCoveragePercentage))
+    : 0;
 
   return (
     <Card className="p-5">
@@ -32,15 +40,15 @@ export function FinancialStreakCard({ summary }: FinancialStreakCardProps) {
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
         <div className="rounded-[1.25rem] bg-teal-50/70 p-4">
           <p className="text-sm font-bold text-teal-800">Racha actual</p>
-          <p className="mt-1 text-3xl font-black text-foreground">{summary.habit.currentStreakDays} días</p>
+          <p className="mt-1 text-3xl font-black text-foreground">{currentStreakDays} días</p>
         </div>
         <div className="rounded-[1.25rem] bg-white/70 p-4 ring-1 ring-border">
           <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
             <Target className="h-4 w-4 text-primary" aria-hidden="true" />
             Cobertura de registro
           </div>
-          <p className="mt-2 text-2xl font-black text-foreground">{summary.habit.registrationCoveragePercentage}%</p>
-          <Progress value={summary.habit.registrationCoveragePercentage} className="mt-3" />
+          <p className="mt-2 text-2xl font-black text-foreground">{registrationCoveragePercentage}%</p>
+          <Progress value={registrationCoveragePercentage} className="mt-3" />
         </div>
       </div>
 
