@@ -2,11 +2,11 @@ import {
   differenceInCalendarDays,
   format,
   getDaysInMonth,
-  isSameDay,
   subDays,
   parseISO,
 } from "date-fns";
 import { getMonthlyForecast } from "@/lib/finance/forecastEngine";
+import { formatCurrency } from "@/lib/formatters";
 import { getExpectedMonthlyIncomeSetting, getMonthlyBudgetSetting } from "@/lib/offline/db";
 import { getAllFixedExpenses } from "@/lib/offline/fixedExpenseRepository";
 import { getOccurrencesByMonth } from "@/lib/offline/fixedExpenseOccurrenceRepository";
@@ -106,6 +106,14 @@ export async function buildLocalDashboardSummary(
     periodBudget,
     today,
   });
+  const dailyEnvelope = buildDailyEnvelope({
+    expenseTransactions,
+    paidTransactionIds,
+    period,
+    periodBudget,
+    remainingVariableBudget,
+    today,
+  });
   const usedPercentage = periodBudget > 0 ? Math.round((actualExpenses / periodBudget) * 100) : 0;
   const nextFixedExpense = getNextFixedExpense(periodFixedItems, targetMonth, today);
 
@@ -132,6 +140,7 @@ export async function buildLocalDashboardSummary(
       protectedForCreditCards: options.remoteSummary?.spendingPower.protectedForCreditCards ?? 0,
       protectedForSavings: options.remoteSummary?.spendingPower.protectedForSavings ?? 0,
     },
+    dailyEnvelope,
     income: {
       expected: expectedIncome,
       received: actualIncome,
@@ -151,7 +160,7 @@ export async function buildLocalDashboardSummary(
     upcomingObligations: options.remoteSummary?.upcomingObligations ?? [],
     recommendedAction: getRecommendedAction({
       categoriesToWatch: options.remoteSummary?.categoriesToWatch ?? [],
-      hasMovementToday: periodTransactions.some((transaction) => isSameDay(parseISO(transaction.transactionDate), today)),
+      hasMovementToday: periodTransactions.some((transaction) => toDashboardDateKey(transaction.transactionDate) === format(today, "yyyy-MM-dd")),
       nextFixedExpense,
     }),
     insights: options.remoteSummary?.insights ?? [],
@@ -173,7 +182,8 @@ function isRemoteSummaryEmpty(summary: DashboardSummary) {
 }
 
 function isTransactionInPeriod(transaction: Transaction, period: DashboardPeriod) {
-  return transaction.transactionDate >= period.startsAt && transaction.transactionDate <= period.endsAt;
+  const transactionDate = toDashboardDateKey(transaction.transactionDate);
+  return transactionDate >= period.startsAt && transactionDate <= period.endsAt;
 }
 
 function fixedExpenseIntersectsPeriod(item: FixedExpenseForecastItem, period: DashboardPeriod) {
@@ -184,7 +194,7 @@ function fixedExpenseIntersectsPeriod(item: FixedExpenseForecastItem, period: Da
 }
 
 function sortTransactionsDesc(a: Transaction, b: Transaction) {
-  return b.transactionDate.localeCompare(a.transactionDate) || b.updatedAt.localeCompare(a.updatedAt);
+  return toDashboardDateKey(b.transactionDate).localeCompare(toDashboardDateKey(a.transactionDate)) || b.updatedAt.localeCompare(a.updatedAt);
 }
 
 function toRecentMovement(transaction: Transaction) {
@@ -194,7 +204,7 @@ function toRecentMovement(transaction: Transaction) {
     categoryName: transaction.categoryName,
     amount: transaction.amount,
     type: transaction.type,
-    date: transaction.transactionDate,
+    date: toDashboardDateKey(transaction.transactionDate),
     note: transaction.note,
   };
 }
@@ -250,6 +260,143 @@ function getPeriodSafeDailySpend(input: {
   const effectiveStart = todayKey > input.period.startsAt ? todayKey : input.period.startsAt;
   const daysRemaining = Math.max(1, differenceInCalendarDays(parseISO(input.period.endsAt), parseISO(effectiveStart)) + 1);
   return Math.max(0, remaining / daysRemaining);
+}
+
+function buildDailyEnvelope(input: {
+  expenseTransactions: Transaction[];
+  paidTransactionIds: Set<string>;
+  period: DashboardPeriod;
+  periodBudget: number;
+  remainingVariableBudget: number;
+  today: Date;
+}): NonNullable<DashboardSummary["dailyEnvelope"]> {
+  const todayKey = format(input.today, "yyyy-MM-dd");
+  const envelopeDate = clampDateKey(todayKey, input.period.startsAt, input.period.endsAt);
+  const spentToday = roundMoney(input.expenseTransactions
+    .filter((transaction) => (
+      toDashboardDateKey(transaction.transactionDate) === envelopeDate &&
+      !isFixedExpenseTransaction(transaction, input.paidTransactionIds)
+    ))
+    .reduce((total, transaction) => total + transaction.amount, 0));
+
+  if (input.periodBudget <= 0) {
+    return {
+      date: envelopeDate,
+      startingDailyAllowance: 0,
+      spentToday,
+      remainingToday: 0,
+      isOverDailyAllowance: spentToday > 0,
+      overspentToday: Math.max(0, spentToday),
+      nextDaysDailyAllowanceBeforeTodaySpending: 0,
+      nextDaysDailyAllowanceAfterTodaySpending: 0,
+      nextDaysDailyAllowanceDelta: 0,
+      message: "Registra movimientos para calcular tu margen diario.",
+    };
+  }
+
+  const daysIncludingToday = getRemainingPeriodDays(input.period, input.today);
+  const daysAfterToday = getDaysAfterToday(input.period, input.today);
+  const availableBeforeTodaySpending = roundMoney(input.remainingVariableBudget + spentToday);
+  const startingDailyAllowance = roundMoney(Math.max(0, availableBeforeTodaySpending / daysIncludingToday));
+  const remainingToday = roundMoney(Math.max(0, startingDailyAllowance - spentToday));
+  const overspentToday = roundMoney(Math.max(0, spentToday - startingDailyAllowance));
+  const nextDaysDailyAllowanceBeforeTodaySpending = daysAfterToday > 0
+    ? startingDailyAllowance
+    : 0;
+  const nextDaysDailyAllowanceAfterTodaySpending = daysAfterToday > 0
+    ? roundMoney(Math.max(0, input.remainingVariableBudget / daysIncludingToday))
+    : 0;
+  const nextDaysDailyAllowanceDelta = roundMoney(nextDaysDailyAllowanceAfterTodaySpending - nextDaysDailyAllowanceBeforeTodaySpending);
+
+  return {
+    date: envelopeDate,
+    startingDailyAllowance,
+    spentToday,
+    remainingToday,
+    isOverDailyAllowance: overspentToday > 0,
+    overspentToday,
+    nextDaysDailyAllowanceBeforeTodaySpending,
+    nextDaysDailyAllowanceAfterTodaySpending,
+    nextDaysDailyAllowanceDelta,
+    message: buildDailyEnvelopeMessage({
+      nextDaysDailyAllowanceAfterTodaySpending,
+      overspentToday,
+      remainingToday,
+    }),
+  };
+}
+
+function isFixedExpenseTransaction(transaction: Transaction, paidTransactionIds: Set<string>) {
+  return Boolean(transaction.fixedExpenseId || transaction.fixedExpenseOccurrenceId || paidTransactionIds.has(transaction.id));
+}
+
+function buildDailyEnvelopeMessage(input: {
+  nextDaysDailyAllowanceAfterTodaySpending: number;
+  overspentToday: number;
+  remainingToday: number;
+}) {
+  if (input.overspentToday > 0) {
+    return `Te pasaste por ${formatCurrency(input.overspentToday)} hoy. Tu margen diario desde mañana baja a ${formatCurrency(input.nextDaysDailyAllowanceAfterTodaySpending)}.`;
+  }
+
+  if (input.remainingToday > 0) {
+    return `Te quedan ${formatCurrency(input.remainingToday)} para hoy. Tu margen diario desde mañana será de ${formatCurrency(input.nextDaysDailyAllowanceAfterTodaySpending)}.`;
+  }
+
+  return "Ya usaste tu margen de hoy. Si no gastas más, mantienes estable tu proyección.";
+}
+
+function getRemainingPeriodDays(period: DashboardPeriod, today: Date) {
+  const todayKey = format(today, "yyyy-MM-dd");
+  const effectiveStart = todayKey > period.startsAt ? todayKey : period.startsAt;
+  return Math.max(1, differenceInCalendarDays(parseISO(period.endsAt), parseISO(effectiveStart)) + 1);
+}
+
+function getDaysAfterToday(period: DashboardPeriod, today: Date) {
+  const todayKey = format(today, "yyyy-MM-dd");
+
+  if (todayKey < period.startsAt) {
+    return Math.max(0, differenceInCalendarDays(parseISO(period.endsAt), parseISO(period.startsAt)));
+  }
+
+  if (todayKey >= period.endsAt) {
+    return 0;
+  }
+
+  return Math.max(0, differenceInCalendarDays(parseISO(period.endsAt), parseISO(todayKey)));
+}
+
+function clampDateKey(dateKey: string, min: string, max: string) {
+  if (dateKey < min) {
+    return min;
+  }
+
+  if (dateKey > max) {
+    return max;
+  }
+
+  return dateKey;
+}
+
+function toDashboardDateKey(value: string) {
+  if (!value.includes("T")) {
+    return value.slice(0, 10);
+  }
+
+  const date = parseISO(value);
+  if (Number.isNaN(date.getTime())) {
+    return value.slice(0, 10);
+  }
+
+  return format(date, "yyyy-MM-dd");
+}
+
+function roundMoney(value: number) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.round(value * 100) / 100;
 }
 
 function projectVariableExpensesForPeriod(actualVariableExpenses: number, period: DashboardPeriod, today: Date) {
@@ -348,7 +495,7 @@ function buildHabit(input: {
   today: Date;
 }): DashboardSummary["habit"] {
   const todayKey = format(input.today, "yyyy-MM-dd");
-  const transactionDates = new Set(input.allTransactions.map((transaction) => transaction.transactionDate));
+  const transactionDates = new Set(input.allTransactions.map((transaction) => toDashboardDateKey(transaction.transactionDate)));
   const hasAnyTransaction = transactionDates.size > 0;
   const hasTransactionToday = transactionDates.has(todayKey);
   const streakAnchor = hasTransactionToday ? input.today : subDays(input.today, 1);
@@ -361,7 +508,7 @@ function buildHabit(input: {
   }
 
   const elapsedDays = getElapsedPeriodDays(input.period, input.today);
-  const activePeriodDates = new Set(input.periodTransactions.map((transaction) => transaction.transactionDate));
+  const activePeriodDates = new Set(input.periodTransactions.map((transaction) => toDashboardDateKey(transaction.transactionDate)));
   const registrationCoveragePercentage = elapsedDays > 0
     ? Math.min(100, Math.round((activePeriodDates.size / elapsedDays) * 100))
     : 0;

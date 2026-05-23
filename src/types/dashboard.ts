@@ -24,7 +24,8 @@ export type FinancialInsightType =
   | "credit_card_overdue"
   | "saving_goal_at_risk"
   | "saving_goal_on_track"
-  | "obligation_pressure";
+  | "obligation_pressure"
+  | "daily_envelope_impact";
 export type FinancialInsightSeverity = "positive" | "info" | "warning" | "danger";
 
 export type DashboardPeriod = {
@@ -64,6 +65,18 @@ export type DashboardSummary = {
     protectedForObligations?: number;
     protectedForCreditCards?: number;
     protectedForSavings?: number;
+  };
+  dailyEnvelope?: {
+    date: string;
+    startingDailyAllowance: number;
+    spentToday: number;
+    remainingToday: number;
+    isOverDailyAllowance: boolean;
+    overspentToday: number;
+    nextDaysDailyAllowanceBeforeTodaySpending: number;
+    nextDaysDailyAllowanceAfterTodaySpending: number;
+    nextDaysDailyAllowanceDelta: number;
+    message: string;
   };
   income: {
     expected: number;

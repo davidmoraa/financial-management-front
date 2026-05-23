@@ -15,6 +15,7 @@ import { RegisterPage } from "@/pages/RegisterPage";
 import { AuthCallbackPage } from "@/pages/AuthCallbackPage";
 import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage";
 import { TermsOfServicePage } from "@/pages/TermsOfServicePage";
+import { AnalyticsPage } from "@/pages/AnalyticsPage";
 
 function ProtectedPage({ children }: { children: ReactNode }) {
   return (
@@ -36,6 +37,7 @@ export function AppRouter() {
         <Route path="/" element={<ProtectedPage><DashboardPage /></ProtectedPage>} />
         <Route path="/new" element={<ProtectedPage><NewTransactionPage /></ProtectedPage>} />
         <Route path="/history" element={<ProtectedPage><HistoryPage /></ProtectedPage>} />
+        <Route path="/analytics" element={<ProtectedPage><AnalyticsPage /></ProtectedPage>} />
         <Route path="/fixed-expenses" element={<ProtectedPage><FixedExpensesPage /></ProtectedPage>} />
         <Route path="/credit-cards" element={<ProtectedPage><CreditCardsPage /></ProtectedPage>} />
         <Route path="/saving-milestones" element={<ProtectedPage><SavingMilestonesPage /></ProtectedPage>} />
