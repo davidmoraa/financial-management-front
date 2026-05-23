@@ -52,11 +52,11 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
 
 function SyncStateLabel({ status }: { status: SyncStatus }) {
   const label = {
-    synced: "Sincronizado",
-    pending: "Pendiente de sincronizar",
-    syncing: "Sincronizando",
-    failed: "Error de sincronización",
-    conflict: "Conflicto",
+    synced: "Respaldado",
+    pending: "Por subir",
+    syncing: "Subiendo...",
+    failed: "No se pudo subir",
+    conflict: "Revisar conflicto",
   }[status];
 
   const className = {

@@ -10,6 +10,7 @@ export function getDashboardMonthKey(date: Date) {
 export function isDashboardSummaryEmpty(summary: DashboardSummary) {
   return (
     (summary.recentMovements ?? []).length === 0 &&
+    (summary.upcomingObligations ?? []).length === 0 &&
     summary.income.received === 0 &&
     summary.expenses.spent === 0 &&
     summary.expenses.fixedPending === 0

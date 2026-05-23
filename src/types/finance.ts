@@ -25,6 +25,7 @@ export type Transaction = {
   categoryId: string;
   categoryName: string;
   paymentMethod: PaymentMethod;
+  creditCardId?: string;
   transactionDate: string;
   note?: string;
   fixedExpenseId?: string;

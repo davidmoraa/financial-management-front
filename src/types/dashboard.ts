@@ -19,7 +19,12 @@ export type FinancialInsightType =
   | "budget_exceeded"
   | "cashflow_risk"
   | "healthy_month"
-  | "saving_opportunity";
+  | "saving_opportunity"
+  | "credit_card_due_soon"
+  | "credit_card_overdue"
+  | "saving_goal_at_risk"
+  | "saving_goal_on_track"
+  | "obligation_pressure";
 export type FinancialInsightSeverity = "positive" | "info" | "warning" | "danger";
 
 export type DashboardPeriod = {
@@ -56,6 +61,9 @@ export type DashboardSummary = {
     safeToSpendToday: number;
     recommendedDailySpend: number;
     remainingVariableBudget: number;
+    protectedForObligations?: number;
+    protectedForCreditCards?: number;
+    protectedForSavings?: number;
   };
   income: {
     expected: number;
@@ -79,6 +87,15 @@ export type DashboardSummary = {
     dueDate: string;
     daysLeft: number;
   };
+  upcomingObligations: Array<{
+    id: string;
+    source: "fixed_expense" | "credit_card_statement" | "saving_milestone";
+    name: string;
+    amount: number;
+    dueDate: string;
+    priority: "essential" | "important" | "optional";
+    status: "pending" | "due_soon" | "overdue" | "reserved" | "paid";
+  }>;
   recommendedAction?: {
     type: DashboardRecommendedActionType;
     title: string;

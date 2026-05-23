@@ -1,4 +1,4 @@
-import { Apple, Bell, CalendarClock, Chrome, CircleDollarSign, DatabaseZap, Link2Off, LogOut, RefreshCw, Wallet } from "lucide-react";
+import { Apple, Bell, CalendarClock, Chrome, CircleDollarSign, CreditCard, DatabaseZap, Link2Off, LogOut, RefreshCw, Target, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { AppConfirmDialog } from "@/components/feedback/AppConfirmDialog";
@@ -18,6 +18,7 @@ export function SettingsPage() {
   const monthlyBudget = useTransactionStore((state) => state.monthlyBudget);
   const pendingSyncCount = useTransactionStore((state) => state.pendingSyncCount);
   const isSyncing = useTransactionStore((state) => state.isSyncing);
+  const refreshSyncCounts = useTransactionStore((state) => state.refreshSyncCounts);
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
   const linkedProviders = useAuthStore((state) => state.linkedProviders);
@@ -58,6 +59,11 @@ export function SettingsPage() {
     } catch {
       setProviderError("No se pudo vincular Apple. Puede que ya esté vinculado a otra cuenta.");
     }
+  };
+
+  const handleSyncNow = async () => {
+    await syncPendingItems();
+    await refreshSyncCounts();
   };
 
   return (
@@ -110,7 +116,19 @@ export function SettingsPage() {
               Gastos fijos
             </Link>
           </Button>
-          <Button variant="secondary" onClick={() => void syncPendingItems()} disabled={!isAuthenticated || isSyncing}>
+          <Button asChild variant="secondary">
+            <Link to="/credit-cards">
+              <CreditCard className="h-4 w-4" aria-hidden="true" />
+              Tarjetas de crédito
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link to="/saving-milestones">
+              <Target className="h-4 w-4" aria-hidden="true" />
+              Metas de ahorro
+            </Link>
+          </Button>
+          <Button variant="secondary" onClick={() => void handleSyncNow()} disabled={!isAuthenticated || isSyncing}>
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Sincronizar ahora
           </Button>

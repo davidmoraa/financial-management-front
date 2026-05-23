@@ -87,7 +87,7 @@ export function HistoryPage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Sync</Label>
+            <Label>Respaldo</Label>
             <div className="grid grid-cols-4 gap-1 rounded-2xl bg-teal-50 p-1">
               {(["all", "synced", "pending", "failed"] as SyncFilter[]).map((filter) => (
                 <button
@@ -99,7 +99,7 @@ export function HistoryPage() {
                     syncFilter === filter ? "bg-white text-primary shadow-soft" : "text-muted-foreground",
                   )}
                 >
-                  {filter === "all" ? "Todos" : filter === "synced" ? "Sync" : filter === "pending" ? "Pend." : "Error"}
+                  {filter === "all" ? "Todos" : filter === "synced" ? "Listos" : filter === "pending" ? "Por subir" : "Fallidos"}
                 </button>
               ))}
             </div>

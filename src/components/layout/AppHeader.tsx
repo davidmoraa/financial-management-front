@@ -25,6 +25,14 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
     title: "Ajustes",
     subtitle: "Preferencias iniciales de la app.",
   },
+  "/credit-cards": {
+    title: "Tarjetas",
+    subtitle: "Corte y pagos a crédito.",
+  },
+  "/saving-milestones": {
+    title: "Metas",
+    subtitle: "Ahorro con intención.",
+  },
 };
 
 export function AppHeader() {
@@ -33,7 +41,7 @@ export function AppHeader() {
   const showNewMovementAction = location.pathname !== "/" && location.pathname !== "/new";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/60 bg-background/72 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-white/80 bg-[#f7fbfa]/92 shadow-[0_14px_34px_-28px_rgba(15,82,78,0.7)] backdrop-blur-[22px] backdrop-saturate-150 supports-[backdrop-filter]:bg-[#f7fbfa]/90">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <MoneyFluxLogo size="sm" className="md:hidden" />
@@ -55,8 +63,8 @@ export function AppHeader() {
           )}
         </div>
       </div>
-      <div className="px-4 pb-3 sm:hidden">
-        <SyncStatusBadge className="w-full justify-center" />
+      <div className="flex px-4 pb-3 sm:hidden">
+        <SyncStatusBadge className="max-w-full" />
       </div>
     </header>
   );

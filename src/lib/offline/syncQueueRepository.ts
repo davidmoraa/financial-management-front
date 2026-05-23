@@ -13,7 +13,7 @@ const nowIso = () => new Date().toISOString();
 export async function getPendingSyncItems() {
   return financeDb.syncQueue
     .where("status")
-    .anyOf(["pending", "failed"])
+    .anyOf(["pending", "failed", "processing"])
     .sortBy("createdAt");
 }
 

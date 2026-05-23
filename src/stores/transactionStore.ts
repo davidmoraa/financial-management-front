@@ -48,6 +48,7 @@ function toMutationInput(values: TransactionFormValues): TransactionMutationInpu
     categoryId: values.categoryId,
     categoryName: category?.name ?? "Sin categoría",
     paymentMethod: values.paymentMethod,
+    creditCardId: values.paymentMethod === "credit_card" ? values.creditCardId : undefined,
     transactionDate: values.transactionDate,
     note: values.note,
   };

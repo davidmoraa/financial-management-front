@@ -77,8 +77,9 @@ function StatusBadge({ status }: { status: "pending" | "paid" | "skipped" }) {
 }
 
 function syncLabel(status: FixedExpense["syncStatus"]) {
-  if (status === "pending") return "Pendiente";
-  if (status === "failed") return "Error sync";
-  if (status === "conflict") return "Conflicto";
-  return "Sync";
+  if (status === "pending") return "Por subir";
+  if (status === "syncing") return "Subiendo...";
+  if (status === "failed") return "No se pudo subir";
+  if (status === "conflict") return "Revisar conflicto";
+  return "Respaldado";
 }

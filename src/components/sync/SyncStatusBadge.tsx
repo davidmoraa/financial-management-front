@@ -21,7 +21,7 @@ export function SyncStatusBadge({ className }: SyncStatusBadgeProps) {
   return (
     <div
       className={cn(
-        "inline-flex max-w-full items-center gap-2 rounded-full px-3 py-2 text-xs font-bold leading-none",
+        "inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-black leading-none md:px-3 md:text-xs",
         state.className,
         className,
       )}
@@ -48,47 +48,49 @@ function getBadgeState({
 }) {
   if (!isAuthenticated) {
     return {
-      label: "Datos solo en este dispositivo",
+      label: "Datos locales",
       icon: CloudOff,
-      className: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+      className: "bg-slate-100/80 text-slate-700 ring-1 ring-slate-200",
     };
   }
 
   if (isSyncing) {
     return {
-      label: "Sincronizando...",
+      label: "Sincronizando",
       icon: RefreshCw,
-      className: "bg-lime-50 text-lime-800 ring-1 ring-lime-100",
+      className: "bg-lime-50/80 text-lime-800 ring-1 ring-lime-100",
     };
   }
 
   if (failedSyncCount > 0) {
     return {
-      label: "Error de sincronización",
+      label: "Datos locales · se subirán después",
       icon: AlertTriangle,
-      className: "bg-red-50 text-red-700 ring-1 ring-red-100",
+      className: "bg-amber-50/85 text-amber-800 ring-1 ring-amber-100",
     };
   }
 
   if (!isOnline) {
     return {
-      label: "Sin conexión — se sincronizará después",
+      label: pendingSyncCount > 0
+        ? `Offline · ${pendingSyncCount} guardados`
+        : "Offline · guardando local",
       icon: CloudOff,
-      className: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
+      className: "bg-amber-50/85 text-amber-800 ring-1 ring-amber-100",
     };
   }
 
   if (pendingSyncCount > 0) {
     return {
-      label: `${pendingSyncCount} pendientes`,
+      label: `Sync pendiente · ${pendingSyncCount} cambios`,
       icon: RefreshCw,
-      className: "bg-lime-50 text-lime-800 ring-1 ring-lime-100",
+      className: "bg-lime-50/80 text-lime-800 ring-1 ring-lime-100",
     };
   }
 
   return {
-    label: "Todo sincronizado",
+    label: "Respaldado",
     icon: CheckCircle2,
-    className: "bg-teal-50 text-teal-700 ring-1 ring-teal-100",
+    className: "bg-teal-50/80 text-teal-700 ring-1 ring-teal-100",
   };
 }

@@ -128,6 +128,9 @@ export async function buildLocalDashboardSummary(
       safeToSpendToday,
       recommendedDailySpend: safeToSpendToday,
       remainingVariableBudget,
+      protectedForObligations: options.remoteSummary?.spendingPower.protectedForObligations ?? pendingFixedExpenses,
+      protectedForCreditCards: options.remoteSummary?.spendingPower.protectedForCreditCards ?? 0,
+      protectedForSavings: options.remoteSummary?.spendingPower.protectedForSavings ?? 0,
     },
     income: {
       expected: expectedIncome,
@@ -145,6 +148,7 @@ export async function buildLocalDashboardSummary(
       usedPercentage,
     },
     nextFixedExpense,
+    upcomingObligations: options.remoteSummary?.upcomingObligations ?? [],
     recommendedAction: getRecommendedAction({
       categoriesToWatch: options.remoteSummary?.categoriesToWatch ?? [],
       hasMovementToday: periodTransactions.some((transaction) => isSameDay(parseISO(transaction.transactionDate), today)),
@@ -160,6 +164,7 @@ export async function buildLocalDashboardSummary(
 function isRemoteSummaryEmpty(summary: DashboardSummary) {
   return (
     (summary.recentMovements ?? []).length === 0 &&
+    (summary.upcomingObligations ?? []).length === 0 &&
     summary.income.received === 0 &&
     summary.expenses.spent === 0 &&
     summary.expenses.fixedPending === 0 &&

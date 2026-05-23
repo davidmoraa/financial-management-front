@@ -44,7 +44,7 @@ function getClarityState(input: { hasAnyActivity: boolean; hasMovementToday: boo
       className: "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100",
       description: "Tus registros de hoy ya alimentan la proyección.",
       icon: ShieldCheck,
-      label: "Claridad alta: actualizado hoy",
+      label: "Último registro: hoy",
     };
   }
 
@@ -53,7 +53,7 @@ function getClarityState(input: { hasAnyActivity: boolean; hasMovementToday: boo
       className: "bg-lime-50 text-lime-800 ring-1 ring-lime-100",
       description: "Un registro hoy mantiene tu lectura financiera precisa.",
       icon: Clock3,
-      label: "Claridad por actualizar",
+      label: "Registra hoy para actualizar",
     };
   }
 
@@ -61,6 +61,6 @@ function getClarityState(input: { hasAnyActivity: boolean; hasMovementToday: boo
     className: "bg-teal-50 text-teal-800 ring-1 ring-teal-100",
     description: "Registra tu primer movimiento para activar claridad financiera.",
     icon: CheckCircle2,
-    label: "Listo para activar claridad",
+    label: "Sin registros este mes",
   };
 }

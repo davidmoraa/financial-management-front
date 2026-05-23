@@ -1,6 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type { Category, SyncQueueItem, Transaction } from "@/types/finance";
 import type { FixedExpense, FixedExpenseOccurrence } from "@/types/fixedExpenses";
+import type { CreditCard } from "@/types/creditCards";
 
 export type FinanceSettingKey =
   | "monthlyBudget"
@@ -23,6 +24,7 @@ export class FinanceDatabase extends Dexie {
   transactions!: Table<Transaction, string>;
   fixedExpenses!: Table<FixedExpense, string>;
   fixedExpenseOccurrences!: Table<FixedExpenseOccurrence, string>;
+  creditCards!: Table<CreditCard, string>;
   categories!: Table<Category, string>;
   settings!: Table<FinanceSetting, FinanceSettingKey>;
   syncQueue!: Table<SyncQueueItem, string>;
@@ -41,6 +43,16 @@ export class FinanceDatabase extends Dexie {
       transactions: "&id, type, categoryId, transactionDate, fixedExpenseId, fixedExpenseOccurrenceId, syncStatus, deletedAt, updatedAt",
       fixedExpenses: "&id, name, categoryId, isActive, syncStatus, deletedAt, updatedAt",
       fixedExpenseOccurrences: "&id, fixedExpenseId, occurrenceMonth, status, transactionId, syncStatus, deletedAt, updatedAt",
+      categories: "&id, type, name",
+      settings: "&key",
+      syncQueue: "&id, entity, entityId, operation, status, createdAt, updatedAt",
+    });
+
+    this.version(3).stores({
+      transactions: "&id, type, categoryId, transactionDate, fixedExpenseId, fixedExpenseOccurrenceId, creditCardId, syncStatus, deletedAt, updatedAt",
+      fixedExpenses: "&id, name, categoryId, isActive, syncStatus, deletedAt, updatedAt",
+      fixedExpenseOccurrences: "&id, fixedExpenseId, occurrenceMonth, status, transactionId, syncStatus, deletedAt, updatedAt",
+      creditCards: "&id, name, isActive, updatedAt",
       categories: "&id, type, name",
       settings: "&key",
       syncQueue: "&id, entity, entityId, operation, status, createdAt, updatedAt",
@@ -80,6 +92,7 @@ export async function prepareOfflineCacheForUser(userId: string) {
       financeDb.transactions,
       financeDb.fixedExpenses,
       financeDb.fixedExpenseOccurrences,
+      financeDb.creditCards,
       financeDb.categories,
       financeDb.syncQueue,
       financeDb.settings,
@@ -90,6 +103,7 @@ export async function prepareOfflineCacheForUser(userId: string) {
           financeDb.transactions.clear(),
           financeDb.fixedExpenses.clear(),
           financeDb.fixedExpenseOccurrences.clear(),
+          financeDb.creditCards.clear(),
           financeDb.categories.clear(),
           financeDb.syncQueue.clear(),
           financeDb.settings.delete("lastPulledAt"),
@@ -116,6 +130,7 @@ export async function clearLocalFinancialRecords() {
       financeDb.transactions,
       financeDb.fixedExpenses,
       financeDb.fixedExpenseOccurrences,
+      financeDb.creditCards,
       financeDb.syncQueue,
       financeDb.settings,
     ],
@@ -124,6 +139,7 @@ export async function clearLocalFinancialRecords() {
         financeDb.transactions.clear(),
         financeDb.fixedExpenses.clear(),
         financeDb.fixedExpenseOccurrences.clear(),
+        financeDb.creditCards.clear(),
         financeDb.syncQueue.clear(),
         financeDb.settings.delete("lastPulledAt"),
       ]);

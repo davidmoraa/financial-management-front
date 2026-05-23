@@ -1,24 +1,26 @@
 import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { AlertTriangle, CalendarClock, Plus } from "lucide-react";
+import { ActiveSavingMilestonesCard } from "@/components/dashboard/ActiveSavingMilestonesCard";
 import { CashflowProjectionCard } from "@/components/dashboard/CashflowProjectionCard";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { DashboardPeriodSelector } from "@/components/dashboard/DashboardPeriodSelector";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { FinancialPeriodControl } from "@/components/dashboard/FinancialPeriodControl";
+import { FinancialPulseSection } from "@/components/dashboard/FinancialPulseSection";
 import { FinancialStatusHero } from "@/components/dashboard/FinancialStatusHero";
-import { FinancialStreakCard } from "@/components/dashboard/FinancialStreakCard";
 import { FinancialInsightsCard } from "@/components/dashboard/FinancialInsightsCard";
-import { MonthlyRhythmCard } from "@/components/dashboard/MonthlyRhythmCard";
+import { ProjectionSimulatorCard } from "@/components/dashboard/ProjectionSimulatorCard";
 import { RecentMovementsCard } from "@/components/dashboard/RecentMovementsCard";
 import { RecommendedActionCard } from "@/components/dashboard/RecommendedActionCard";
-import { SafeToSpendCard } from "@/components/dashboard/SafeToSpendCard";
+import { SafeToSpendExplanation } from "@/components/dashboard/SafeToSpendExplanation";
 import { UpcomingFixedExpenseCard } from "@/components/dashboard/UpcomingFixedExpenseCard";
+import { UpcomingObligationsCard } from "@/components/dashboard/UpcomingObligationsCard";
 import { WatchCategoriesCard } from "@/components/dashboard/WatchCategoriesCard";
 import { Button } from "@/components/ui/button";
 import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { getDashboardPeriod } from "@/lib/dashboard/dashboardPeriod";
 import { getDashboardMonthKey, isDashboardSummaryEmpty } from "@/lib/dashboard/dashboardSummaryAdapter";
+import { useSavingMilestoneStore } from "@/stores/savingMilestoneStore";
 import type { DashboardPeriodType } from "@/types/dashboard";
 
 export function DashboardPage() {
@@ -27,13 +29,25 @@ export function DashboardPage() {
   const month = useMemo(() => getDashboardMonthKey(currentDate), [currentDate]);
   const period = useMemo(() => getDashboardPeriod(periodType, currentDate), [currentDate, periodType]);
   const { data: dashboardSummary, error, isLoading } = useDashboardSummary(month, period);
+  const savingMilestones = useSavingMilestoneStore((state) => state.savingMilestones);
+  const hydrateSavingMilestones = useSavingMilestoneStore((state) => state.hydrate);
+  const isLoadingSavingMilestones = useSavingMilestoneStore((state) => state.isLoading);
   const isEmpty = dashboardSummary ? isDashboardSummaryEmpty(dashboardSummary) : false;
   const shouldReduceMotion = useReducedMotion();
 
+  useEffect(() => {
+    void hydrateSavingMilestones();
+  }, [hydrateSavingMilestones]);
+
   return (
     <div className="space-y-5 md:space-y-6">
-      <DashboardHeader currentDate={currentDate} summary={dashboardSummary} />
-      <DashboardPeriodSelector value={periodType} period={period} onChange={setPeriodType} />
+      <FinancialPeriodControl
+        currentDate={currentDate}
+        value={periodType}
+        period={period}
+        onChange={setPeriodType}
+        summary={dashboardSummary}
+      />
 
       {isLoading && !dashboardSummary && <DashboardSkeleton />}
 
@@ -49,19 +63,27 @@ export function DashboardPage() {
           transition={{ duration: 0.28, ease: "easeOut" }}
           className="space-y-5 md:space-y-6"
         >
-          <FinancialStatusHero summary={dashboardSummary} />
+          <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.65fr)] xl:items-stretch">
+            <FinancialStatusHero summary={dashboardSummary} />
+            <RecommendedActionCard summary={dashboardSummary} />
+          </section>
 
-          <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-            <div className="grid min-w-0 content-start gap-4 lg:order-2">
-              <RecommendedActionCard summary={dashboardSummary} />
-              <FinancialInsightsCard summary={dashboardSummary} />
+          <FinancialPulseSection summary={dashboardSummary} />
+
+          <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+            <div className="grid min-w-0 content-start gap-4">
+              <SafeToSpendExplanation summary={dashboardSummary} />
+              <ProjectionSimulatorCard currentDate={currentDate} summary={dashboardSummary} />
               <UpcomingFixedExpenseCard summary={dashboardSummary} />
-              <MonthlyRhythmCard summary={dashboardSummary} />
-              <FinancialStreakCard summary={dashboardSummary} />
+              <UpcomingObligationsCard summary={dashboardSummary} />
+              <ActiveSavingMilestonesCard
+                milestones={savingMilestones}
+                isLoading={isLoadingSavingMilestones}
+              />
+              <FinancialInsightsCard summary={dashboardSummary} />
             </div>
 
-            <div className="grid min-w-0 gap-4 lg:order-1">
-              <SafeToSpendCard summary={dashboardSummary} />
+            <div className="grid min-w-0 gap-4">
               <CashflowProjectionCard summary={dashboardSummary} />
               <WatchCategoriesCard summary={dashboardSummary} />
               <RecentMovementsCard summary={dashboardSummary} />

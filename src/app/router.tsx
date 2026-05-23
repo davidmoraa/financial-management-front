@@ -6,7 +6,9 @@ import { CategoriesPage } from "@/pages/CategoriesPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { FixedExpensesPage } from "@/pages/FixedExpensesPage";
+import { CreditCardsPage } from "@/pages/CreditCardsPage";
 import { NewTransactionPage } from "@/pages/NewTransactionPage";
+import { SavingMilestonesPage } from "@/pages/SavingMilestonesPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -35,6 +37,8 @@ export function AppRouter() {
         <Route path="/new" element={<ProtectedPage><NewTransactionPage /></ProtectedPage>} />
         <Route path="/history" element={<ProtectedPage><HistoryPage /></ProtectedPage>} />
         <Route path="/fixed-expenses" element={<ProtectedPage><FixedExpensesPage /></ProtectedPage>} />
+        <Route path="/credit-cards" element={<ProtectedPage><CreditCardsPage /></ProtectedPage>} />
+        <Route path="/saving-milestones" element={<ProtectedPage><SavingMilestonesPage /></ProtectedPage>} />
         <Route path="/categories" element={<ProtectedPage><CategoriesPage /></ProtectedPage>} />
         <Route path="/settings" element={<ProtectedPage><SettingsPage /></ProtectedPage>} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { CalendarClock, Grid2X2, History, Plus, Settings, Tags } from "lucide-react";
+import { CalendarClock, Grid2X2, History, Plus, Settings, Tags, Target } from "lucide-react";
 import { MoneyFluxLogo } from "@/components/brand/MoneyFluxLogo";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +8,7 @@ const navItems = [
   { to: "/new", label: "Nuevo movimiento", icon: Plus },
   { to: "/history", label: "Historial", icon: History },
   { to: "/fixed-expenses", label: "Gastos fijos", icon: CalendarClock },
+  { to: "/saving-milestones", label: "Metas", icon: Target },
   { to: "/categories", label: "Categorías", icon: Tags },
   { to: "/settings", label: "Ajustes", icon: Settings },
 ];

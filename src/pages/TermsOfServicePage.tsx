@@ -13,7 +13,7 @@ const sections = [
   {
     title: "Cuenta y acceso",
     body:
-      "Eres responsable de mantener el control de tus dispositivos y sesiones. El acceso con Google, Apple o email se valida desde el backend antes de emitir una sesion interna de Money Flux.",
+      "Eres responsable de mantener el control de tus dispositivos y sesiones. El acceso con Google o Apple se valida desde el backend antes de emitir una sesion interna de Money Flux.",
   },
   {
     title: "Datos financieros",

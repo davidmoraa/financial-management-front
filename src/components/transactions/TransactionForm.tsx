@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { differenceInCalendarDays, endOfMonth, format, parseISO } from "date-fns";
 import { CalendarDays, CloudOff, Coins, FileText, Save } from "lucide-react";
@@ -11,11 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MovementRegisteredFeedback } from "@/components/feedback/MovementRegisteredFeedback";
 import { CategoryQuickSelect } from "@/components/transactions/CategoryQuickSelect";
+import { CreditCardSelect } from "@/components/transactions/CreditCardSelect";
 import { PaymentMethodSelect } from "@/components/transactions/PaymentMethodSelect";
 import { TransactionTypeToggle } from "@/components/transactions/TransactionTypeToggle";
 import { transactionSchema, type TransactionFormValues } from "@/schemas/transactionSchema";
 import { useNetworkStore } from "@/stores/networkStore";
 import { useCategoryStore } from "@/stores/categoryStore";
+import { useCreditCardStore } from "@/stores/creditCardStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 import type { PaymentMethod, TransactionType } from "@/types/finance";
 import { formatCurrency } from "@/lib/formatters";
@@ -33,6 +35,7 @@ function getInitialValues(type: TransactionType = "expense", paymentMethod: Paym
     amount: "" as unknown as number,
     categoryId: firstCategory?.id ?? "",
     paymentMethod,
+    creditCardId: undefined,
     transactionDate: today(),
     note: "",
   };
@@ -42,6 +45,9 @@ export function TransactionForm() {
   const addTransaction = useTransactionStore((state) => state.addTransaction);
   const isOnline = useNetworkStore((state) => state.isOnline);
   const getCategoriesByType = useCategoryStore((state) => state.getCategoriesByType);
+  const creditCards = useCreditCardStore((state) => state.creditCards);
+  const hydrateCreditCards = useCreditCardStore((state) => state.hydrate);
+  const activeCreditCards = useMemo(() => creditCards.filter((card) => card.isActive), [creditCards]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [offlineSaved, setOfflineSaved] = useState(false);
   const [savedReward, setSavedReward] = useState<{
@@ -67,6 +73,11 @@ export function TransactionForm() {
   const type = watch("type");
   const categoryId = watch("categoryId");
   const paymentMethod = watch("paymentMethod");
+  const creditCardId = watch("creditCardId");
+
+  useEffect(() => {
+    void hydrateCreditCards();
+  }, [hydrateCreditCards]);
 
   useEffect(() => {
     const validCategories = getCategoriesByType(type);
@@ -76,6 +87,17 @@ export function TransactionForm() {
       setValue("categoryId", validCategories[0]?.id ?? "", { shouldValidate: true });
     }
   }, [categoryId, getCategoriesByType, setValue, type]);
+
+  useEffect(() => {
+    if (paymentMethod !== "credit_card" && creditCardId) {
+      setValue("creditCardId", undefined, { shouldValidate: true });
+      return;
+    }
+
+    if (paymentMethod === "credit_card" && !creditCardId && activeCreditCards.length === 1) {
+      setValue("creditCardId", activeCreditCards[0].id, { shouldValidate: true });
+    }
+  }, [activeCreditCards, creditCardId, paymentMethod, setValue]);
 
   useEffect(() => {
     return () => {
@@ -178,6 +200,18 @@ export function TransactionForm() {
             />
             {errors.paymentMethod && <p className="text-sm font-semibold text-red-600">{errors.paymentMethod.message}</p>}
           </section>
+
+          {paymentMethod === "credit_card" && (
+            <section className="space-y-3">
+              <Label>Tarjeta de crédito</Label>
+              <CreditCardSelect
+                cards={activeCreditCards}
+                value={creditCardId}
+                onChange={(nextCreditCardId) => setValue("creditCardId", nextCreditCardId, { shouldValidate: true })}
+              />
+              {errors.creditCardId && <p className="text-sm font-semibold text-red-600">{errors.creditCardId.message}</p>}
+            </section>
+          )}
 
           <div className="grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
             <div className="space-y-2">
