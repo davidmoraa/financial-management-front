@@ -58,13 +58,15 @@ export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
           <p className="mt-3 max-w-2xl text-2xl font-black leading-tight tracking-normal text-white md:text-4xl">
             {copy.title}
           </p>
-          <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-teal-50/86 md:text-base">
-            {copy.description}
-          </p>
+          {copy.description ? (
+            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-teal-50/86 md:text-base">
+              {copy.description}
+            </p>
+          ) : null}
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <HeroMetric
-              label="Cierre proyectado"
+              label="Cierre estimado"
               value={formatCurrency(summary.balance.projectedEndOfMonth)}
               icon={ProjectionIcon}
             />
@@ -105,23 +107,36 @@ function getHeroCopy(summary: DashboardSummary) {
   const envelope = getEnvelopeView(summary);
 
   if (summary.dailyEnvelope) {
+    if (summary.dailyEnvelope.spentToday === 0) {
+      return {
+        title: "Tu margen diario está completo.",
+        description: `Si mantienes este ritmo, cerrarás el periodo con ${formatCurrency(summary.balance.projectedEndOfMonth)}.`,
+      };
+    }
+
     if (envelope.status === "risk") {
       return {
-        title: "tu día necesita ajuste.",
-        description: `Tu margen diario desde mañana baja a ${formatCurrency(envelope.nextDailyAllowance)}. Mantén el registro para recuperar control.`,
+        title: `Tu margen diario desde mañana será de ${formatCurrency(envelope.nextDailyAllowance)}.`,
+        description: "Cada gasto extra de hoy reduce tu margen de los próximos días.",
       };
     }
 
     if (envelope.status === "warning") {
       return {
-        title: "evita más gastos para mantener tu proyección.",
-        description: "Ya usaste el margen de hoy. Si no gastas más, tu plan se mantiene estable.",
+        title: "Si no gastas más hoy, mantienes estable tu proyección.",
+      };
+    }
+
+    if (summary.dailyEnvelope.nextDaysDailyAllowanceDelta < 0) {
+      return {
+        title: `Has usado ${formatCurrency(envelope.spentToday)} de tu margen diario de ${formatCurrency(envelope.startingDailyAllowance)}.`,
+        description: `Desde mañana tu margen será de ${formatCurrency(envelope.nextDailyAllowance)} por día.`,
       };
     }
 
     return {
-      title: `de tu margen diario de ${formatCurrency(envelope.startingDailyAllowance)}.`,
-      description: summary.dailyEnvelope.message,
+      title: `Has usado ${formatCurrency(envelope.spentToday)} de tu margen diario de ${formatCurrency(envelope.startingDailyAllowance)}.`,
+      description: "Tu ritmo diario se mantiene estable.",
     };
   }
 
@@ -171,7 +186,7 @@ function getEnvelopeView(summary: DashboardSummary) {
   if (dailyEnvelope.overspentToday > 0) {
     return {
       eyebrow: "Te pasaste hoy por",
-      message: dailyEnvelope.message,
+      message: `Te pasaste por ${formatCurrency(dailyEnvelope.overspentToday)} hoy.`,
       nextDailyAllowance: dailyEnvelope.nextDaysDailyAllowanceAfterTodaySpending,
       overspentToday: dailyEnvelope.overspentToday,
       primaryAmount: dailyEnvelope.overspentToday,
@@ -182,10 +197,24 @@ function getEnvelopeView(summary: DashboardSummary) {
     };
   }
 
+  if (dailyEnvelope.spentToday === 0) {
+    return {
+      eyebrow: "Hoy puedes gastar",
+      message: "Tu margen está completo para hoy.",
+      nextDailyAllowance: dailyEnvelope.nextDaysDailyAllowanceAfterTodaySpending,
+      overspentToday: dailyEnvelope.overspentToday,
+      primaryAmount: dailyEnvelope.startingDailyAllowance,
+      remainingToday: dailyEnvelope.remainingToday,
+      spentToday: dailyEnvelope.spentToday,
+      startingDailyAllowance: dailyEnvelope.startingDailyAllowance,
+      status: "healthy" as const,
+    };
+  }
+
   if (dailyEnvelope.remainingToday === 0 && dailyEnvelope.startingDailyAllowance > 0) {
     return {
       eyebrow: "Ya usaste tu margen de hoy",
-      message: dailyEnvelope.message,
+      message: "Ya usaste tu margen de hoy.",
       nextDailyAllowance: dailyEnvelope.nextDaysDailyAllowanceAfterTodaySpending,
       overspentToday: dailyEnvelope.overspentToday,
       primaryAmount: 0,
@@ -198,7 +227,7 @@ function getEnvelopeView(summary: DashboardSummary) {
 
   return {
     eyebrow: "Hoy te quedan",
-    message: dailyEnvelope.message,
+    message: `Te quedan ${formatCurrency(dailyEnvelope.remainingToday)} para hoy.`,
     nextDailyAllowance: dailyEnvelope.nextDaysDailyAllowanceAfterTodaySpending,
     overspentToday: dailyEnvelope.overspentToday,
     primaryAmount: dailyEnvelope.remainingToday,

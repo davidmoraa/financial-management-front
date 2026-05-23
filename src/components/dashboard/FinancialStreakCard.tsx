@@ -19,6 +19,10 @@ export function FinancialStreakCard({ summary }: FinancialStreakCardProps) {
   const registrationCoveragePercentage = Number.isFinite(summary.habit.registrationCoveragePercentage)
     ? Math.min(100, Math.max(0, summary.habit.registrationCoveragePercentage))
     : 0;
+  const streakHeadline = currentStreakDays === 0 ? "Empieza hoy" : `${currentStreakDays} días`;
+  const streakCopy = currentStreakDays === 0
+    ? "Registra un movimiento para iniciar tu racha."
+    : "Vas construyendo claridad.";
 
   return (
     <Card className="p-5">
@@ -40,7 +44,8 @@ export function FinancialStreakCard({ summary }: FinancialStreakCardProps) {
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
         <div className="rounded-[1.25rem] bg-teal-50/70 p-4">
           <p className="text-sm font-bold text-teal-800">Racha actual</p>
-          <p className="mt-1 text-3xl font-black text-foreground">{currentStreakDays} días</p>
+          <p className="mt-1 text-3xl font-black text-foreground">{streakHeadline}</p>
+          <p className="mt-2 text-sm font-bold leading-5 text-teal-800">{streakCopy}</p>
         </div>
         <div className="rounded-[1.25rem] bg-white/70 p-4 ring-1 ring-border">
           <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
@@ -69,7 +74,7 @@ export function FinancialStreakCard({ summary }: FinancialStreakCardProps) {
       </div>
 
       <p className="mt-4 rounded-2xl bg-lime-50 px-3 py-3 text-sm font-bold leading-6 text-lime-900">
-        {summary.habit.message}
+        {streakCopy}
       </p>
     </Card>
   );

@@ -17,6 +17,10 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
     title: "Historial",
     subtitle: "Revisa tus movimientos del mes.",
   },
+  "/analytics": {
+    title: "Análisis",
+    subtitle: "Señales visuales para decidir mejor.",
+  },
   "/categories": {
     title: "Categorías",
     subtitle: "Tu mapa de ingresos y gastos.",

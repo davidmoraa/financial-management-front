@@ -187,6 +187,96 @@ describe("localDashboardSummary", () => {
     expect(summary?.budget.monthlyBudget).toBe(7000);
   });
 
+  it("refleja el gasto local de hoy en el Daily Envelope", async () => {
+    await setIncomeSettings({
+      monthlyBudget: 9696,
+      expectedIncomeAmount: 10000,
+      expectedMonthlyIncome: 10000,
+      incomeCadence: "monthly",
+    });
+    await createTransaction({
+      type: "expense",
+      amount: 122,
+      categoryId: "food",
+      categoryName: "Comida",
+      paymentMethod: "debit_card",
+      transactionDate: "2026-05-20",
+    });
+
+    const summary = await buildLocalDashboardSummary("2026-05", {
+      remoteSummary: emptyRemoteSummary,
+      today: new Date("2026-05-20T12:00:00"),
+    });
+
+    expect(summary?.dailyEnvelope).toMatchObject({
+      startingDailyAllowance: 808,
+      spentToday: 122,
+      remainingToday: 686,
+      isOverDailyAllowance: false,
+      overspentToday: 0,
+    });
+    expect(summary?.dailyEnvelope?.startingDailyAllowance).not.toBe(
+      summary?.dailyEnvelope?.nextDaysDailyAllowanceAfterTodaySpending,
+    );
+  });
+
+  it("refleja el gasto local de hoy en el Daily Envelope aunque la fecha venga como timestamp", async () => {
+    await setIncomeSettings({
+      monthlyBudget: 9696,
+      expectedIncomeAmount: 10000,
+      expectedMonthlyIncome: 10000,
+      incomeCadence: "monthly",
+    });
+    await createTransaction({
+      type: "expense",
+      amount: 122,
+      categoryId: "food",
+      categoryName: "Comida",
+      paymentMethod: "debit_card",
+      transactionDate: "2026-05-20T15:30:00.000Z",
+    });
+
+    const summary = await buildLocalDashboardSummary("2026-05", {
+      remoteSummary: emptyRemoteSummary,
+      today: new Date("2026-05-20T12:00:00"),
+    });
+
+    expect(summary?.expenses.spent).toBe(122);
+    expect(summary?.dailyEnvelope).toMatchObject({
+      startingDailyAllowance: 808,
+      spentToday: 122,
+      remainingToday: 686,
+      isOverDailyAllowance: false,
+      overspentToday: 0,
+    });
+  });
+
+  it("no incrementa spentToday cuando el movimiento local de hoy es ingreso", async () => {
+    await setIncomeSettings({
+      monthlyBudget: 9696,
+      expectedIncomeAmount: 10000,
+      expectedMonthlyIncome: 10000,
+      incomeCadence: "monthly",
+    });
+    await createTransaction({
+      type: "income",
+      amount: 122,
+      categoryId: "salary",
+      categoryName: "Sueldo",
+      paymentMethod: "transfer",
+      transactionDate: "2026-05-20",
+    });
+
+    const summary = await buildLocalDashboardSummary("2026-05", {
+      remoteSummary: emptyRemoteSummary,
+      today: new Date("2026-05-20T12:00:00"),
+    });
+
+    expect(summary?.dailyEnvelope?.spentToday).toBe(0);
+    expect(summary?.dailyEnvelope?.startingDailyAllowance).toBe(808);
+    expect(summary?.dailyEnvelope?.remainingToday).toBe(808);
+  });
+
   it("calcula la racha financiera con meta progresiva cuando hay registros consecutivos", async () => {
     for (const transactionDate of ["2026-05-18", "2026-05-19", "2026-05-20"]) {
       await createTransaction({

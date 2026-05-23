@@ -2,7 +2,6 @@ import {
   differenceInCalendarDays,
   format,
   getDaysInMonth,
-  isSameDay,
   subDays,
   parseISO,
 } from "date-fns";
@@ -161,7 +160,7 @@ export async function buildLocalDashboardSummary(
     upcomingObligations: options.remoteSummary?.upcomingObligations ?? [],
     recommendedAction: getRecommendedAction({
       categoriesToWatch: options.remoteSummary?.categoriesToWatch ?? [],
-      hasMovementToday: periodTransactions.some((transaction) => isSameDay(parseISO(transaction.transactionDate), today)),
+      hasMovementToday: periodTransactions.some((transaction) => toDashboardDateKey(transaction.transactionDate) === format(today, "yyyy-MM-dd")),
       nextFixedExpense,
     }),
     insights: options.remoteSummary?.insights ?? [],
@@ -183,7 +182,8 @@ function isRemoteSummaryEmpty(summary: DashboardSummary) {
 }
 
 function isTransactionInPeriod(transaction: Transaction, period: DashboardPeriod) {
-  return transaction.transactionDate >= period.startsAt && transaction.transactionDate <= period.endsAt;
+  const transactionDate = toDashboardDateKey(transaction.transactionDate);
+  return transactionDate >= period.startsAt && transactionDate <= period.endsAt;
 }
 
 function fixedExpenseIntersectsPeriod(item: FixedExpenseForecastItem, period: DashboardPeriod) {
@@ -194,7 +194,7 @@ function fixedExpenseIntersectsPeriod(item: FixedExpenseForecastItem, period: Da
 }
 
 function sortTransactionsDesc(a: Transaction, b: Transaction) {
-  return b.transactionDate.localeCompare(a.transactionDate) || b.updatedAt.localeCompare(a.updatedAt);
+  return toDashboardDateKey(b.transactionDate).localeCompare(toDashboardDateKey(a.transactionDate)) || b.updatedAt.localeCompare(a.updatedAt);
 }
 
 function toRecentMovement(transaction: Transaction) {
@@ -204,7 +204,7 @@ function toRecentMovement(transaction: Transaction) {
     categoryName: transaction.categoryName,
     amount: transaction.amount,
     type: transaction.type,
-    date: transaction.transactionDate,
+    date: toDashboardDateKey(transaction.transactionDate),
     note: transaction.note,
   };
 }
@@ -274,7 +274,7 @@ function buildDailyEnvelope(input: {
   const envelopeDate = clampDateKey(todayKey, input.period.startsAt, input.period.endsAt);
   const spentToday = roundMoney(input.expenseTransactions
     .filter((transaction) => (
-      transaction.transactionDate === envelopeDate &&
+      toDashboardDateKey(transaction.transactionDate) === envelopeDate &&
       !isFixedExpenseTransaction(transaction, input.paidTransactionIds)
     ))
     .reduce((total, transaction) => total + transaction.amount, 0));
@@ -376,6 +376,19 @@ function clampDateKey(dateKey: string, min: string, max: string) {
   }
 
   return dateKey;
+}
+
+function toDashboardDateKey(value: string) {
+  if (!value.includes("T")) {
+    return value.slice(0, 10);
+  }
+
+  const date = parseISO(value);
+  if (Number.isNaN(date.getTime())) {
+    return value.slice(0, 10);
+  }
+
+  return format(date, "yyyy-MM-dd");
 }
 
 function roundMoney(value: number) {
@@ -482,7 +495,7 @@ function buildHabit(input: {
   today: Date;
 }): DashboardSummary["habit"] {
   const todayKey = format(input.today, "yyyy-MM-dd");
-  const transactionDates = new Set(input.allTransactions.map((transaction) => transaction.transactionDate));
+  const transactionDates = new Set(input.allTransactions.map((transaction) => toDashboardDateKey(transaction.transactionDate)));
   const hasAnyTransaction = transactionDates.size > 0;
   const hasTransactionToday = transactionDates.has(todayKey);
   const streakAnchor = hasTransactionToday ? input.today : subDays(input.today, 1);
@@ -495,7 +508,7 @@ function buildHabit(input: {
   }
 
   const elapsedDays = getElapsedPeriodDays(input.period, input.today);
-  const activePeriodDates = new Set(input.periodTransactions.map((transaction) => transaction.transactionDate));
+  const activePeriodDates = new Set(input.periodTransactions.map((transaction) => toDashboardDateKey(transaction.transactionDate)));
   const registrationCoveragePercentage = elapsedDays > 0
     ? Math.min(100, Math.round((activePeriodDates.size / elapsedDays) * 100))
     : 0;
