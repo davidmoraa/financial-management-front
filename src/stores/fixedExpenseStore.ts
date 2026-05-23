@@ -72,6 +72,17 @@ async function refreshRemoteFixedExpenseCache(targetMonth: Date) {
   }
 }
 
+async function loadLocalFixedExpenseState(targetMonth: Date) {
+  const [fixedExpenses, occurrences] = await Promise.all([getAllFixedExpenses(), getOccurrencesByMonth(targetMonth)]);
+  return { fixedExpenses, occurrences };
+}
+
+async function refreshLocalFixedExpenseState(set: (state: Partial<FixedExpenseState>) => void, targetMonth: Date) {
+  const localState = await loadLocalFixedExpenseState(targetMonth);
+  set({ ...localState, isHydrated: true });
+  await refreshSyncCounts();
+}
+
 export const useFixedExpenseStore = create<FixedExpenseState>((set, get) => ({
   fixedExpenses: [],
   occurrences: [],
@@ -85,8 +96,8 @@ export const useFixedExpenseStore = create<FixedExpenseState>((set, get) => ({
     set({ isHydrating: true });
     await ensureOfflineDatabaseReady();
     await refreshRemoteFixedExpenseCache(targetMonth);
-    const [fixedExpenses, occurrences] = await Promise.all([getAllFixedExpenses(), getOccurrencesByMonth(targetMonth)]);
-    set({ fixedExpenses, occurrences, isHydrated: true, isHydrating: false });
+    const localState = await loadLocalFixedExpenseState(targetMonth);
+    set({ ...localState, isHydrated: true, isHydrating: false });
   },
   refreshFixedExpenses: async () => {
     if (canFetchRemoteData()) {
@@ -112,34 +123,35 @@ export const useFixedExpenseStore = create<FixedExpenseState>((set, get) => ({
   },
   refreshAll: async (targetMonth = new Date()) => {
     await refreshRemoteFixedExpenseCache(targetMonth);
-    const [fixedExpenses, occurrences] = await Promise.all([getAllFixedExpenses(), getOccurrencesByMonth(targetMonth)]);
-    set({ fixedExpenses, occurrences, isHydrated: true });
+    const localState = await loadLocalFixedExpenseState(targetMonth);
+    set({ ...localState, isHydrated: true });
     await refreshSyncCounts();
   },
   createFixedExpense: async (input) => {
     const fixedExpense = await createFixedExpense(input);
-    await get().refreshAll();
+    await refreshLocalFixedExpenseState(set, new Date());
     return fixedExpense;
   },
   updateFixedExpense: async (id, input) => {
     const fixedExpense = await updateFixedExpense(id, input);
-    await get().refreshAll();
+    await refreshLocalFixedExpenseState(set, new Date());
     return fixedExpense;
   },
   deleteFixedExpense: async (id) => {
     await softDeleteFixedExpense(id);
-    await get().refreshAll();
+    await refreshLocalFixedExpenseState(set, new Date());
   },
   markPaid: async (input) => {
     await markFixedExpensePaid(input);
+    const targetMonth = new Date(`${input.occurrenceMonth}T12:00:00`);
     await Promise.all([
-      get().refreshAll(new Date(`${input.occurrenceMonth}T00:00:00`)),
+      refreshLocalFixedExpenseState(set, targetMonth),
       useTransactionStore.getState().refreshTransactions(),
     ]);
   },
   skipThisMonth: async (input) => {
     await skipFixedExpenseForMonth(input);
-    await get().refreshAll(new Date(`${input.occurrenceMonth}T00:00:00`));
+    await refreshLocalFixedExpenseState(set, new Date(`${input.occurrenceMonth}T12:00:00`));
   },
 }));
 

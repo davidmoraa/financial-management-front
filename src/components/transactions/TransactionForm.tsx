@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
+import { differenceInCalendarDays, endOfMonth, format, parseISO } from "date-fns";
 import { CalendarDays, CloudOff, Coins, FileText, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { motion } from "motion/react";
@@ -9,15 +9,18 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { SuccessPulse } from "@/components/feedback/SuccessPulse";
+import { MovementRegisteredFeedback } from "@/components/feedback/MovementRegisteredFeedback";
 import { CategoryQuickSelect } from "@/components/transactions/CategoryQuickSelect";
+import { CreditCardSelect } from "@/components/transactions/CreditCardSelect";
 import { PaymentMethodSelect } from "@/components/transactions/PaymentMethodSelect";
 import { TransactionTypeToggle } from "@/components/transactions/TransactionTypeToggle";
 import { transactionSchema, type TransactionFormValues } from "@/schemas/transactionSchema";
 import { useNetworkStore } from "@/stores/networkStore";
 import { useCategoryStore } from "@/stores/categoryStore";
+import { useCreditCardStore } from "@/stores/creditCardStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 import type { PaymentMethod, TransactionType } from "@/types/finance";
+import { formatCurrency } from "@/lib/formatters";
 
 const today = () => format(new Date(), "yyyy-MM-dd");
 
@@ -29,9 +32,10 @@ function getInitialValues(type: TransactionType = "expense", paymentMethod: Paym
 
   return {
     type,
-    amount: undefined as unknown as number,
+    amount: "" as unknown as number,
     categoryId: firstCategory?.id ?? "",
     paymentMethod,
+    creditCardId: undefined,
     transactionDate: today(),
     note: "",
   };
@@ -41,8 +45,17 @@ export function TransactionForm() {
   const addTransaction = useTransactionStore((state) => state.addTransaction);
   const isOnline = useNetworkStore((state) => state.isOnline);
   const getCategoriesByType = useCategoryStore((state) => state.getCategoriesByType);
+  const creditCards = useCreditCardStore((state) => state.creditCards);
+  const hydrateCreditCards = useCreditCardStore((state) => state.hydrate);
+  const activeCreditCards = useMemo(() => creditCards.filter((card) => card.isActive), [creditCards]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [offlineSaved, setOfflineSaved] = useState(false);
+  const [savedReward, setSavedReward] = useState<{
+    amount: number;
+    categoryName: string;
+    projectionCopy: string;
+    type: TransactionType;
+  }>();
   const successTimer = useRef<number | undefined>(undefined);
 
   const {
@@ -60,6 +73,11 @@ export function TransactionForm() {
   const type = watch("type");
   const categoryId = watch("categoryId");
   const paymentMethod = watch("paymentMethod");
+  const creditCardId = watch("creditCardId");
+
+  useEffect(() => {
+    void hydrateCreditCards();
+  }, [hydrateCreditCards]);
 
   useEffect(() => {
     const validCategories = getCategoriesByType(type);
@@ -71,6 +89,17 @@ export function TransactionForm() {
   }, [categoryId, getCategoriesByType, setValue, type]);
 
   useEffect(() => {
+    if (paymentMethod !== "credit_card" && creditCardId) {
+      setValue("creditCardId", undefined, { shouldValidate: true });
+      return;
+    }
+
+    if (paymentMethod === "credit_card" && !creditCardId && activeCreditCards.length === 1) {
+      setValue("creditCardId", activeCreditCards[0].id, { shouldValidate: true });
+    }
+  }, [activeCreditCards, creditCardId, paymentMethod, setValue]);
+
+  useEffect(() => {
     return () => {
       if (successTimer.current) {
         window.clearTimeout(successTimer.current);
@@ -79,10 +108,22 @@ export function TransactionForm() {
   }, []);
 
   const onSubmit = async (values: TransactionFormValues) => {
-    await addTransaction(values);
-    setShowSuccess(true);
-    setOfflineSaved(!isOnline);
+    const transaction = await addTransaction(values);
+    const monthlySummary = useTransactionStore.getState().getMonthlySummary(parseISO(values.transactionDate));
     reset(getInitialValues(values.type, values.paymentMethod));
+    setSavedReward({
+      amount: transaction.amount,
+      categoryName: transaction.categoryName,
+      projectionCopy: getProjectionCopy({
+        balance: monthlySummary.balance,
+        budget: monthlySummary.budget,
+        expense: monthlySummary.expense,
+        transactionType: transaction.type,
+      }),
+      type: transaction.type,
+    });
+    setOfflineSaved(!isOnline);
+    setShowSuccess(true);
 
     if (successTimer.current) {
       window.clearTimeout(successTimer.current);
@@ -90,12 +131,19 @@ export function TransactionForm() {
     successTimer.current = window.setTimeout(() => {
       setShowSuccess(false);
       setOfflineSaved(false);
+      setSavedReward(undefined);
     }, 2200);
   };
 
   return (
     <>
-      <SuccessPulse show={showSuccess} />
+      <MovementRegisteredFeedback
+        amount={savedReward?.amount}
+        categoryName={savedReward?.categoryName}
+        projectionCopy={savedReward?.projectionCopy}
+        show={showSuccess}
+        type={savedReward?.type}
+      />
       <Card className="overflow-hidden">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-5 md:p-7">
           <TransactionTypeToggle
@@ -153,6 +201,18 @@ export function TransactionForm() {
             {errors.paymentMethod && <p className="text-sm font-semibold text-red-600">{errors.paymentMethod.message}</p>}
           </section>
 
+          {paymentMethod === "credit_card" && (
+            <section className="space-y-3">
+              <Label>Tarjeta de crédito</Label>
+              <CreditCardSelect
+                cards={activeCreditCards}
+                value={creditCardId}
+                onChange={(nextCreditCardId) => setValue("creditCardId", nextCreditCardId, { shouldValidate: true })}
+              />
+              {errors.creditCardId && <p className="text-sm font-semibold text-red-600">{errors.creditCardId.message}</p>}
+            </section>
+          )}
+
           <div className="grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
             <div className="space-y-2">
               <Label htmlFor="transactionDate" className="flex items-center gap-2">
@@ -188,4 +248,25 @@ export function TransactionForm() {
       </Card>
     </>
   );
+}
+
+function getProjectionCopy(input: {
+  balance: number;
+  budget: number;
+  expense: number;
+  transactionType: TransactionType;
+}) {
+  if (input.transactionType === "income") {
+    return `Ingreso registrado. Tu balance del mes queda en ${formatCurrency(input.balance)}.`;
+  }
+
+  if (input.budget > 0) {
+    const remainingBudget = Math.max(0, input.budget - input.expense);
+    const daysRemaining = Math.max(1, differenceInCalendarDays(endOfMonth(new Date()), new Date()) + 1);
+    const safeDailySpend = remainingBudget / daysRemaining;
+
+    return `Después de este gasto, puedes gastar ${formatCurrency(safeDailySpend)} diarios el resto del mes.`;
+  }
+
+  return "Movimiento registrado. Tu proyección se actualizó.";
 }

@@ -115,6 +115,7 @@ export function FixedExpensesPage() {
               key={item.fixedExpense.id}
               fixedExpense={item.fixedExpense}
               occurrence={item.occurrence}
+              status={item.status}
               onMarkPaid={setPayingFixedExpense}
               onSkip={handleSkip}
               onEdit={(fixedExpense) => {

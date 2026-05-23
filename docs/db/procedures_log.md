@@ -17,6 +17,41 @@ Required fields:
 - Verification query/result
 - Rollback notes if applicable
 
+## [2026-05-18] Income cadence forecast
+
+**Environment:**
+- Frontend repo plus sibling API repo
+- Linked Supabase project
+
+**Reason:**
+- Execute the API-owned migration required for expected income cadence.
+
+**SQL executed:**
+
+```sql
+-- No SQL executed from the frontend repo.
+-- The migration was executed from the sibling API repo with Supabase CLI.
+```
+
+**Source migration:**
+
+```txt
+../financial-management-api/src/db/migrations/005_income_cadence_profile.sql
+../financial-management-api/supabase/migrations/20260518193000_income_cadence_profile.sql
+```
+
+**Procedure executed from API repo:**
+
+```bash
+supabase db push --dry-run --include-all
+supabase db push --include-all
+supabase migration list
+```
+
+**Result:**
+- Migration `20260518193000_income_cadence_profile.sql` applied successfully.
+- Frontend still does not connect directly to PostgreSQL or Supabase.
+
 ## [2026-05-16] OAuth social auth
 
 **Environment:**

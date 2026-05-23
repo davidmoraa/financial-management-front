@@ -9,14 +9,15 @@ import type { FixedExpense, FixedExpenseOccurrence } from "@/types/fixedExpenses
 type FixedExpenseCardProps = {
   fixedExpense: FixedExpense;
   occurrence?: FixedExpenseOccurrence;
+  status?: "pending" | "paid" | "skipped";
   onMarkPaid: (fixedExpense: FixedExpense) => void;
   onSkip: (fixedExpense: FixedExpense) => void;
   onEdit: (fixedExpense: FixedExpense) => void;
   onDelete: (fixedExpense: FixedExpense) => void;
 };
 
-export function FixedExpenseCard({ fixedExpense, occurrence, onMarkPaid, onSkip, onEdit, onDelete }: FixedExpenseCardProps) {
-  const status = occurrence?.status ?? "pending";
+export function FixedExpenseCard({ fixedExpense, occurrence, status: statusOverride, onMarkPaid, onSkip, onEdit, onDelete }: FixedExpenseCardProps) {
+  const status = statusOverride ?? occurrence?.status ?? "pending";
 
   return (
     <Card className="p-4">
@@ -41,7 +42,7 @@ export function FixedExpenseCard({ fixedExpense, occurrence, onMarkPaid, onSkip,
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Button size="sm" onClick={() => onMarkPaid(fixedExpense)} disabled={status === "paid"}>
           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-          Pagado
+          {status === "paid" ? "Pagado" : "Marcar pagado"}
         </Button>
         <Button size="sm" variant="secondary" onClick={() => onSkip(fixedExpense)} disabled={status === "skipped"}>
           <SkipForward className="h-4 w-4" aria-hidden="true" />
@@ -76,8 +77,9 @@ function StatusBadge({ status }: { status: "pending" | "paid" | "skipped" }) {
 }
 
 function syncLabel(status: FixedExpense["syncStatus"]) {
-  if (status === "pending") return "Pendiente";
-  if (status === "failed") return "Error sync";
-  if (status === "conflict") return "Conflicto";
-  return "Sync";
+  if (status === "pending") return "Por subir";
+  if (status === "syncing") return "Subiendo...";
+  if (status === "failed") return "No se pudo subir";
+  if (status === "conflict") return "Revisar conflicto";
+  return "Respaldado";
 }

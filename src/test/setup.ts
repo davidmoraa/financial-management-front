@@ -6,7 +6,9 @@ import { resetOfflineDatabaseForTests } from "@/lib/offline/db";
 import { useNetworkStore } from "@/stores/networkStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useCategoryStore } from "@/stores/categoryStore";
+import { useCreditCardStore } from "@/stores/creditCardStore";
 import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
+import { useSavingMilestoneStore } from "@/stores/savingMilestoneStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 
 if (!globalThis.crypto?.randomUUID) {
@@ -44,10 +46,22 @@ afterEach(async () => {
     isHydrated: false,
     isHydrating: false,
   });
+  useCreditCardStore.setState({
+    creditCards: [],
+    isHydrated: false,
+    isLoading: false,
+    error: undefined,
+  });
   useCategoryStore.setState({
     categories: [],
     isHydrated: false,
     isHydrating: false,
+  });
+  useSavingMilestoneStore.setState({
+    savingMilestones: [],
+    isHydrated: false,
+    isLoading: false,
+    error: undefined,
   });
   window.localStorage.clear();
   useNetworkStore.setState({

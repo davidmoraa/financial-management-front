@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api/client";
+import type { IncomeCadence } from "@/types/finance";
 
 export type AuthProvider = "google" | "apple" | "password";
 
@@ -13,6 +14,9 @@ export type AuthProfile = {
   currency: string;
   monthlyBudget: number | null;
   monthlyBudgetConfiguredAt?: string | null;
+  expectedIncomeAmount?: number | null;
+  incomeCadence?: IncomeCadence | null;
+  incomeConfiguredAt?: string | null;
 };
 
 export type LinkedProvider = {

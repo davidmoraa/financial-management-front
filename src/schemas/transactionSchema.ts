@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const transactionSchema = z.object({
+const transactionBaseSchema = z.object({
   type: z.enum(["income", "expense"], {
     required_error: "Elige si es ingreso o gasto.",
   }),
@@ -11,8 +11,27 @@ export const transactionSchema = z.object({
   paymentMethod: z.enum(["cash", "debit_card", "credit_card", "transfer", "other"], {
     required_error: "Elige un método de pago.",
   }),
+  creditCardId: z.string().optional(),
   transactionDate: z.string().min(1, "Elige una fecha."),
   note: z.string().max(160, "Máximo 160 caracteres.").optional(),
+});
+
+export const transactionSchema = transactionBaseSchema.superRefine((value, context) => {
+  if (value.paymentMethod === "credit_card" && !value.creditCardId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["creditCardId"],
+      message: "Elige la tarjeta de crédito.",
+    });
+  }
+
+  if (value.paymentMethod !== "credit_card" && value.creditCardId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["creditCardId"],
+      message: "La tarjeta solo aplica cuando el método es crédito.",
+    });
+  }
 });
 
 export type TransactionFormValues = z.infer<typeof transactionSchema>;
