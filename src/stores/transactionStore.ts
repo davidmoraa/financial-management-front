@@ -11,7 +11,7 @@ import {
   type TransactionMutationInput,
 } from "@/lib/offline/transactionRepository";
 import { AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
-import { ensureOfflineDatabaseReady, getMonthlyBudgetSetting } from "@/lib/offline/db";
+import { ensureOfflineDatabaseReady, getExpectedMonthlyIncomeSetting, getMonthlyBudgetSetting } from "@/lib/offline/db";
 import { getFailedCount, getPendingCount } from "@/lib/offline/syncQueueRepository";
 import { fetchTransactions } from "@/services/transactionsApi";
 import type { MonthlySummary, Transaction } from "@/types/finance";
@@ -21,6 +21,7 @@ import { useCategoryStore } from "@/stores/categoryStore";
 type TransactionState = {
   transactions: Transaction[];
   monthlyBudget: number;
+  expectedMonthlyIncome: number;
   isHydrated: boolean;
   isHydrating: boolean;
   isSyncing: boolean;
@@ -47,6 +48,7 @@ function toMutationInput(values: TransactionFormValues): TransactionMutationInpu
     categoryId: values.categoryId,
     categoryName: category?.name ?? "Sin categoría",
     paymentMethod: values.paymentMethod,
+    creditCardId: values.paymentMethod === "credit_card" ? values.creditCardId : undefined,
     transactionDate: values.transactionDate,
     note: values.note,
   };
@@ -68,8 +70,9 @@ async function loadLocalState() {
     getPendingCount(),
     getFailedCount(),
   ]);
+  const expectedMonthlyIncome = await getExpectedMonthlyIncomeSetting();
 
-  return { transactions, monthlyBudget, pendingSyncCount, failedSyncCount };
+  return { transactions, monthlyBudget, expectedMonthlyIncome, pendingSyncCount, failedSyncCount };
 }
 
 function canFetchRemoteData() {
@@ -83,6 +86,7 @@ function canFetchRemoteData() {
 export const useTransactionStore = create<TransactionState>((set, get) => ({
   transactions: [],
   monthlyBudget: 0,
+  expectedMonthlyIncome: 0,
   isHydrated: false,
   isHydrating: false,
   isSyncing: false,
@@ -148,11 +152,15 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       .filter((transaction) => transaction.type === "expense")
       .reduce((total, transaction) => total + transaction.amount, 0);
     const budget = get().monthlyBudget;
+    const expectedIncome = get().expectedMonthlyIncome;
+    const incomeBasis = Math.max(income, expectedIncome);
 
     return {
-      income,
+      income: incomeBasis,
+      actualIncome: income,
+      expectedIncome,
       expense,
-      balance: income - expense,
+      balance: incomeBasis - expense,
       budget,
       budgetUsedPercentage: budget > 0 ? Math.round((expense / budget) * 100) : 0,
     };

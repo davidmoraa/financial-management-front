@@ -1,4 +1,4 @@
-import { Apple, Bell, CalendarClock, Chrome, CircleDollarSign, DatabaseZap, Link2Off, LogOut, RefreshCw, Wallet } from "lucide-react";
+import { Apple, Bell, CalendarClock, Chrome, CircleDollarSign, CreditCard, DatabaseZap, Link2Off, LogOut, RefreshCw, Target, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { AppConfirmDialog } from "@/components/feedback/AppConfirmDialog";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
 import { Button } from "@/components/ui/button";
 import { requestAppleIdToken } from "@/lib/oauth/browserProviders";
+import { incomeCadenceLabels } from "@/lib/finance/incomeCadence";
 import { startSupabaseGoogleOAuth } from "@/lib/oauth/supabaseGoogle";
 import { syncPendingItems } from "@/lib/offline/syncEngine";
 import { useAuthStore } from "@/stores/authStore";
@@ -17,7 +18,9 @@ export function SettingsPage() {
   const monthlyBudget = useTransactionStore((state) => state.monthlyBudget);
   const pendingSyncCount = useTransactionStore((state) => state.pendingSyncCount);
   const isSyncing = useTransactionStore((state) => state.isSyncing);
+  const refreshSyncCounts = useTransactionStore((state) => state.refreshSyncCounts);
   const user = useAuthStore((state) => state.user);
+  const profile = useAuthStore((state) => state.profile);
   const linkedProviders = useAuthStore((state) => state.linkedProviders);
   const linkApple = useAuthStore((state) => state.linkApple);
   const unlinkProvider = useAuthStore((state) => state.unlinkProvider);
@@ -58,6 +61,11 @@ export function SettingsPage() {
     }
   };
 
+  const handleSyncNow = async () => {
+    await syncPendingItems();
+    await refreshSyncCounts();
+  };
+
   return (
     <div className="grid gap-5 lg:grid-cols-3">
       <Card className="p-5 lg:col-span-2">
@@ -75,6 +83,15 @@ export function SettingsPage() {
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <SettingRow icon={CircleDollarSign} label="Presupuesto mensual" value={monthlyBudget > 0 ? formatCurrency(monthlyBudget) : "Sin configurar"} />
+          <SettingRow
+            icon={CircleDollarSign}
+            label="Ingreso esperado"
+            value={
+              typeof profile?.expectedIncomeAmount === "number" && profile.incomeCadence
+                ? `${formatCurrency(profile.expectedIncomeAmount)} ${incomeCadenceLabels[profile.incomeCadence].toLowerCase()}`
+                : "Sin configurar"
+            }
+          />
           <SettingRow icon={CircleDollarSign} label="Moneda" value="MXN" />
           <SettingRow icon={Wallet} label="Sesión" value={isAuthenticated ? user?.email ?? "Activa" : "Sin sesión"} />
         </div>
@@ -99,7 +116,19 @@ export function SettingsPage() {
               Gastos fijos
             </Link>
           </Button>
-          <Button variant="secondary" onClick={() => void syncPendingItems()} disabled={!isAuthenticated || isSyncing}>
+          <Button asChild variant="secondary">
+            <Link to="/credit-cards">
+              <CreditCard className="h-4 w-4" aria-hidden="true" />
+              Tarjetas de crédito
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link to="/saving-milestones">
+              <Target className="h-4 w-4" aria-hidden="true" />
+              Metas de ahorro
+            </Link>
+          </Button>
+          <Button variant="secondary" onClick={() => void handleSyncNow()} disabled={!isAuthenticated || isSyncing}>
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Sincronizar ahora
           </Button>

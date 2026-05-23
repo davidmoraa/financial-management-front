@@ -9,7 +9,7 @@ export function AppShell({ children }: PropsWithChildren) {
       <DesktopSidebar />
       <div className="min-h-screen md:pl-72">
         <AppHeader />
-        <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-5 md:px-8 md:pb-10 md:pt-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl px-4 pb-32 pt-5 md:px-8 md:pb-10 md:pt-8">{children}</main>
       </div>
       <BottomNav />
     </div>

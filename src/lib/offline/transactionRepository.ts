@@ -10,6 +10,7 @@ export type TransactionMutationInput = {
   categoryId: string;
   categoryName: string;
   paymentMethod: PaymentMethod;
+  creditCardId?: string;
   transactionDate: string;
   note?: string;
   fixedExpenseId?: string;
@@ -38,6 +39,7 @@ export async function createTransaction(input: TransactionMutationInput) {
     categoryId: input.categoryId,
     categoryName: input.categoryName,
     paymentMethod: input.paymentMethod,
+    creditCardId: input.paymentMethod === "credit_card" ? input.creditCardId : undefined,
     transactionDate: input.transactionDate,
     note: input.note?.trim() || undefined,
     fixedExpenseId: input.fixedExpenseId,
@@ -76,6 +78,7 @@ export async function updateTransaction(id: string, input: TransactionMutationIn
     categoryId: input.categoryId,
     categoryName: input.categoryName,
     paymentMethod: input.paymentMethod,
+    creditCardId: input.paymentMethod === "credit_card" ? input.creditCardId : undefined,
     transactionDate: input.transactionDate,
     note: input.note?.trim() || undefined,
     fixedExpenseId: input.fixedExpenseId,

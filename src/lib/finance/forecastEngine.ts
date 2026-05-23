@@ -20,6 +20,7 @@ type MonthlyForecastInput = {
   fixedExpenses: FixedExpense[];
   fixedExpenseOccurrences: FixedExpenseOccurrence[];
   monthlyBudget: number;
+  expectedMonthlyIncome?: number;
   targetMonth: Date;
   today?: Date;
 };
@@ -30,10 +31,17 @@ export function getMonthlyForecast(input: MonthlyForecastInput): MonthlyForecast
     (transaction) => !transaction.deletedAt && isSameMonth(parseISO(transaction.transactionDate), input.targetMonth),
   );
   const actualIncome = sum(monthTransactions.filter((transaction) => transaction.type === "income"));
+  const incomeBasis = Math.max(actualIncome, input.expectedMonthlyIncome ?? 0);
   const expenseTransactions = monthTransactions.filter((transaction) => transaction.type === "expense");
   const actualExpenses = sum(expenseTransactions);
   const activeFixedExpenses = getFixedExpensesForMonth(input.fixedExpenses, input.targetMonth);
-  const fixedExpenseItems = buildFixedExpenseItems(activeFixedExpenses, input.fixedExpenseOccurrences, input.targetMonth, today);
+  const fixedExpenseItems = buildFixedExpenseItems(
+    activeFixedExpenses,
+    input.fixedExpenseOccurrences,
+    monthTransactions,
+    input.targetMonth,
+    today,
+  );
   const paidTransactionIds = new Set(
     fixedExpenseItems
       .filter((item) => item.status === "paid" && item.occurrence?.transactionId)
@@ -51,7 +59,7 @@ export function getMonthlyForecast(input: MonthlyForecastInput): MonthlyForecast
     .reduce((total, item) => total + item.fixedExpense.amount, 0);
   const projectedVariableExpenses = projectVariableExpenses(actualVariableExpenses, input.targetMonth, today);
   const projectedMonthEndExpenses = actualFixedExpensesPaid + pendingFixedExpenses + projectedVariableExpenses;
-  const projectedBalance = actualIncome - projectedMonthEndExpenses;
+  const projectedBalance = incomeBasis - projectedMonthEndExpenses;
   const remainingAfterPendingFixed = input.monthlyBudget - actualExpenses - pendingFixedExpenses;
   const safeDailySpend = getSafeDailySpend({
     monthlyBudget: input.monthlyBudget,
@@ -63,7 +71,7 @@ export function getMonthlyForecast(input: MonthlyForecastInput): MonthlyForecast
   const budgetUsedPercentage = input.monthlyBudget > 0 ? Math.round((projectedMonthEndExpenses / input.monthlyBudget) * 100) : 0;
 
   const forecast: MonthlyForecast = {
-    actualIncome,
+    actualIncome: incomeBasis,
     actualExpenses,
     actualFixedExpensesPaid,
     actualVariableExpenses,
@@ -189,17 +197,20 @@ export function getBudgetWarnings(forecast: MonthlyForecast, monthlyBudget: numb
 function buildFixedExpenseItems(
   fixedExpenses: FixedExpense[],
   occurrences: FixedExpenseOccurrence[],
+  transactions: Transaction[],
   targetMonth: Date,
   today: Date,
 ): FixedExpenseForecastItem[] {
   return fixedExpenses.map((fixedExpense) => {
-    const occurrence = occurrences.find(
-      (candidate) =>
-        !candidate.deletedAt &&
-        candidate.fixedExpenseId === fixedExpense.id &&
-        isSameMonth(parseISO(candidate.occurrenceMonth), targetMonth),
+    const occurrence = findOccurrenceForFixedExpense(occurrences, fixedExpense.id, targetMonth);
+    const linkedPayment = transactions.find(
+      (transaction) =>
+        transaction.type === "expense" &&
+        !transaction.deletedAt &&
+        (transaction.fixedExpenseId === fixedExpense.id ||
+          Boolean(occurrence?.id && transaction.fixedExpenseOccurrenceId === occurrence.id)),
     );
-    const status = occurrence?.status ?? "pending";
+    const status: FixedExpenseForecastItem["status"] = occurrence?.status ?? (linkedPayment ? "paid" : "pending");
     const day = getDate(today);
 
     return {
@@ -214,6 +225,21 @@ function buildFixedExpenseItems(
       overdue: status === "pending" && isSameMonth(today, targetMonth) && day > fixedExpense.paymentWindowEndDay,
     };
   });
+}
+
+function findOccurrenceForFixedExpense(
+  occurrences: FixedExpenseOccurrence[],
+  fixedExpenseId: string,
+  targetMonth: Date,
+): FixedExpenseOccurrence | undefined {
+  return occurrences
+    .filter(
+      (candidate) =>
+        !candidate.deletedAt &&
+        candidate.fixedExpenseId === fixedExpenseId &&
+        isSameMonth(parseISO(candidate.occurrenceMonth), targetMonth),
+    )
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
 }
 
 function projectVariableExpenses(actualVariableExpenses: number, targetMonth: Date, today: Date) {

@@ -1,93 +1,101 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
-import { Apple, Chrome, LogIn } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { useState } from "react";
+import { Apple, Chrome, Cloud, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { MoneyFluxLogo } from "@/components/brand/MoneyFluxLogo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { requestAppleIdToken } from "@/lib/oauth/browserProviders";
 import { startSupabaseGoogleOAuth } from "@/lib/oauth/supabaseGoogle";
 import { useAuthStore } from "@/stores/authStore";
 
-const loginSchema = z.object({
-  email: z.string().email("Ingresa un email válido."),
-  password: z.string().min(1, "Ingresa tu contraseña."),
-});
-
-type LoginValues = z.infer<typeof loginSchema>;
-
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const login = useAuthStore((state) => state.login);
   const loginWithApple = useAuthStore((state) => state.loginWithApple);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
-  const {
-    register,
-    handleSubmit,
-    setError,
-    formState: { errors },
-  } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
-
-  const onSubmit = async (values: LoginValues) => {
-    try {
-      await login(values);
-      navigate((location.state as { from?: string } | null)?.from ?? "/", { replace: true });
-    } catch {
-      setError("root", { message: "No se pudo iniciar sesión con esos datos." });
-    }
-  };
+  const [providerError, setProviderError] = useState<string | null>(null);
+  const intendedPath = (location.state as { from?: string } | null)?.from ?? "/";
 
   const onSocialLogin = async (provider: "google" | "apple") => {
+    setProviderError(null);
+
     try {
       if (provider === "google") {
         await startSupabaseGoogleOAuth({
           intent: "login_google",
-          intendedPath: (location.state as { from?: string } | null)?.from ?? "/",
+          intendedPath,
         });
         return;
-      } else {
-        const result = await requestAppleIdToken();
-        await loginWithApple(result.idToken, { displayName: result.displayName });
       }
-      navigate((location.state as { from?: string } | null)?.from ?? "/", { replace: true });
+
+      const result = await requestAppleIdToken();
+      await loginWithApple(result.idToken, { displayName: result.displayName });
+      navigate(intendedPath, { replace: true });
     } catch {
-      setError("root", { message: "No se pudo iniciar sesión con ese proveedor." });
+      setProviderError("No pudimos completar el acceso. Intenta de nuevo con Google o Apple.");
     }
   };
 
   return (
-    <AuthPageShell title="Inicia sesión" subtitle="Sincroniza tus movimientos entre dispositivos.">
-      <div className="space-y-4">
-        <OAuthButtons disabled={isAuthLoading} onGoogle={() => void onSocialLogin("google")} onApple={() => void onSocialLogin("apple")} />
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs font-bold uppercase tracking-normal text-muted-foreground">Email</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
+    <AuthPageShell
+      title="Tu dinero, con menos fricción."
+      subtitle="Entra con Google o Apple para mantener tu lectura financiera respaldada y lista en todos tus dispositivos."
+    >
+      <SocialAuthPanel
+        disabled={isAuthLoading}
+        error={providerError}
+        onGoogle={() => void onSocialLogin("google")}
+        onApple={() => void onSocialLogin("apple")}
+        footerLabel="¿Primera vez en Money Flux?"
+        footerActionLabel="Crea tu cuenta con Google o Apple"
+        footerTo="/register"
+      />
+    </AuthPageShell>
+  );
+}
+
+export function SocialAuthPanel({
+  disabled,
+  error,
+  footerActionLabel,
+  footerLabel,
+  footerTo,
+  onApple,
+  onGoogle,
+}: {
+  disabled?: boolean;
+  error?: string | null;
+  footerActionLabel: string;
+  footerLabel: string;
+  footerTo: string;
+  onGoogle: () => void;
+  onApple: () => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <OAuthButtons disabled={disabled} onGoogle={onGoogle} onApple={onApple} />
+
+      {error && (
+        <p className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold leading-6 text-amber-800">
+          {error}
+        </p>
+      )}
+
+      <div className="grid gap-2 rounded-[1.35rem] border border-teal-100 bg-teal-50/70 p-3">
+        <TrustRow icon={LockKeyhole} text="Tu sesión se valida en la API de Money Flux." />
+        <TrustRow icon={Cloud} text="Tus registros offline se respaldan cuando vuelve la conexión." />
+        <TrustRow icon={ShieldCheck} text="No usamos email como identidad principal." />
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
-        <Field label="Email" error={errors.email?.message}>
-          <Input type="email" autoComplete="email" {...register("email")} />
-        </Field>
-        <Field label="Contraseña" error={errors.password?.message}>
-          <Input type="password" autoComplete="current-password" {...register("password")} />
-        </Field>
-        {errors.root && <p className="text-sm font-semibold text-red-600">{errors.root.message}</p>}
-        <Button type="submit" className="w-full" size="lg" disabled={isAuthLoading}>
-          <LogIn className="h-5 w-5" aria-hidden="true" />
-          Entrar
-        </Button>
-        <p className="text-center text-sm text-muted-foreground">
-          ¿No tienes cuenta? <Link className="font-bold text-primary" to="/register">Crear cuenta</Link>
-        </p>
-      </form>
-    </AuthPageShell>
+      <p className="text-center text-sm font-semibold leading-6 text-muted-foreground">
+        {footerLabel}{" "}
+        <Link className="font-black text-primary underline-offset-4 hover:underline" to={footerTo}>
+          {footerActionLabel}
+        </Link>
+      </p>
+    </div>
   );
 }
 
@@ -101,14 +109,39 @@ export function OAuthButtons({
   onApple: () => void;
 }) {
   return (
-    <div className="grid gap-2">
-      <Button type="button" variant="outline" size="lg" className="w-full justify-center" disabled={disabled} onClick={onGoogle}>
-        <Chrome className="h-5 w-5" aria-hidden="true" />
-        Continuar con Google
+    <div className="grid gap-3">
+      <Button
+        type="button"
+        variant="outline"
+        size="lg"
+        className="h-auto min-h-[4rem] w-full justify-start rounded-[1.35rem] border-teal-100 bg-white/88 px-4 py-3 text-left shadow-soft hover:bg-teal-50"
+        disabled={disabled}
+        onClick={onGoogle}
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-primary">
+          <Chrome className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-black text-foreground">Continuar con Google</span>
+          <span className="mt-0.5 block text-xs font-semibold text-muted-foreground">Acceso rápido y respaldo seguro.</span>
+        </span>
       </Button>
-      <Button type="button" variant="outline" size="lg" className="w-full justify-center" disabled={disabled} onClick={onApple}>
-        <Apple className="h-5 w-5" aria-hidden="true" />
-        Continuar con Apple
+
+      <Button
+        type="button"
+        variant="outline"
+        size="lg"
+        className="h-auto min-h-[4rem] w-full justify-start rounded-[1.35rem] border-slate-200 bg-slate-950 px-4 py-3 text-left text-white shadow-lift hover:bg-slate-900"
+        disabled={disabled}
+        onClick={onApple}
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white">
+          <Apple className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-black text-white">Continuar con Apple</span>
+          <span className="mt-0.5 block text-xs font-semibold text-white/70">Privado, simple y sin contraseña.</span>
+        </span>
       </Button>
     </div>
   );
@@ -116,26 +149,40 @@ export function OAuthButtons({
 
 export function AuthPageShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
-      <Card className="w-full max-w-md p-6">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(20,184,166,0.2),transparent_36%),linear-gradient(180deg,#f8fffd_0%,#eef9f6_100%)] px-4 py-10">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-teal-100/55 to-transparent" aria-hidden="true" />
+      <Card className="relative w-full max-w-md overflow-hidden rounded-[2rem] border-teal-100 bg-white/88 p-6 shadow-[0_30px_90px_-50px_rgba(15,82,78,0.9)] md:p-7">
         <div className="mb-6 text-center">
           <MoneyFluxLogo size="xl" className="mx-auto" />
-          <p className="mt-4 text-sm font-bold uppercase tracking-[0.16em] text-primary">Money Flux</p>
-          <h1 className="mt-2 text-2xl font-bold tracking-normal text-foreground">{title}</h1>
-          <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">{subtitle}</p>
+          <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-lime-50 px-3 py-1 text-xs font-black uppercase tracking-normal text-lime-800 ring-1 ring-lime-100">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            Money Flux
+          </p>
+          <h1 className="mt-4 text-3xl font-black leading-tight tracking-normal text-foreground">{title}</h1>
+          <p className="mx-auto mt-3 max-w-sm text-sm font-semibold leading-6 text-muted-foreground">{subtitle}</p>
         </div>
         {children}
+        <p className="mt-6 text-center text-xs font-medium leading-5 text-muted-foreground">
+          Al continuar aceptas los{" "}
+          <Link className="font-bold text-primary underline-offset-4 hover:underline" to="/terms-of-service">
+            terminos
+          </Link>{" "}
+          y la{" "}
+          <Link className="font-bold text-primary underline-offset-4 hover:underline" to="/privacy-policy">
+            politica de privacidad
+          </Link>{" "}
+          de Money Flux.
+        </p>
       </Card>
     </main>
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
+function TrustRow({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      {children}
-      {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
+    <div className="flex items-start gap-2 text-xs font-bold leading-5 text-teal-900">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+      <span>{text}</span>
     </div>
   );
 }
