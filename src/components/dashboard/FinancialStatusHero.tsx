@@ -17,11 +17,19 @@ const statusCopy = {
   risk: "Riesgo",
 };
 
+const envelopeStatusCopy = {
+  healthy: "Dentro del margen",
+  warning: "Margen agotado",
+  risk: "Margen excedido",
+};
+
 export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
   const shouldReduceMotion = useReducedMotion();
   const isPositiveProjection = summary.balance.projectedEndOfMonth >= 0;
   const ProjectionIcon = isPositiveProjection ? ArrowUpRight : ArrowDownRight;
   const copy = getHeroCopy(summary);
+  const envelope = getEnvelopeView(summary);
+  const visualStatus = envelope.status === "healthy" ? summary.balance.status : envelope.status;
 
   return (
     <motion.section
@@ -30,9 +38,9 @@ export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
       transition={{ duration: 0.35, ease: "easeOut" }}
       className={cn(
         "relative overflow-hidden rounded-[2rem] p-5 text-primary-foreground shadow-[0_28px_80px_-34px_rgba(6,78,59,0.9)] md:p-7",
-        summary.balance.status === "risk"
+        visualStatus === "risk"
           ? "bg-[radial-gradient(circle_at_16%_0%,rgba(253,186,116,0.34),transparent_32%),linear-gradient(135deg,#4a1d1f_0%,#9f2f2f_52%,#0f766e_100%)]"
-          : summary.balance.status === "warning"
+          : visualStatus === "warning"
             ? "bg-[radial-gradient(circle_at_85%_6%,rgba(254,240,138,0.42),transparent_30%),linear-gradient(135deg,#083f3b_0%,#0f766e_58%,#ca8a04_100%)]"
             : "bg-[radial-gradient(circle_at_82%_2%,rgba(190,242,100,0.46),transparent_30%),radial-gradient(circle_at_8%_100%,rgba(45,212,191,0.32),transparent_36%),linear-gradient(135deg,#073b37_0%,#0f766e_52%,#14b8a6_100%)]",
       )}
@@ -41,28 +49,30 @@ export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
         <div className="min-w-0">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm font-black text-teal-50 ring-1 ring-white/15 backdrop-blur">
             <ShieldCheck className="h-4 w-4 text-lime-200" aria-hidden="true" />
-            {statusCopy[summary.balance.status]}
+            {summary.dailyEnvelope ? envelopeStatusCopy[envelope.status] : statusCopy[summary.balance.status]}
           </div>
-          <p className="mt-6 text-sm font-black uppercase tracking-normal text-lime-100/95">Hoy puedes gastar</p>
+          <p className="mt-6 text-sm font-black uppercase tracking-normal text-lime-100/95">{envelope.eyebrow}</p>
           <h2 className="mt-1 max-w-full break-words text-[3.25rem] font-black leading-none tracking-normal text-white sm:text-6xl md:text-7xl">
-            {formatCurrency(summary.spendingPower.safeToSpendToday)}
+            {formatCurrency(envelope.primaryAmount)}
           </h2>
           <p className="mt-3 max-w-2xl text-2xl font-black leading-tight tracking-normal text-white md:text-4xl">
             {copy.title}
           </p>
-          <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-teal-50/86 md:text-base">
-            {copy.description}
-          </p>
+          {copy.description ? (
+            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-teal-50/86 md:text-base">
+              {copy.description}
+            </p>
+          ) : null}
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <HeroMetric
-              label="Cierre proyectado"
+              label="Cierre estimado"
               value={formatCurrency(summary.balance.projectedEndOfMonth)}
               icon={ProjectionIcon}
             />
             <HeroMetric
-              label="Disponible seguro hoy"
-              value={formatCurrency(summary.spendingPower.safeToSpendToday)}
+              label="Desde mañana"
+              value={formatCurrency(envelope.nextDailyAllowance)}
               icon={Gauge}
             />
           </div>
@@ -78,15 +88,14 @@ export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
         <div className="min-w-0 rounded-[1.6rem] bg-white/13 p-4 ring-1 ring-white/18 backdrop-blur-md">
           <div className="flex items-center gap-2 text-sm font-black text-teal-50/90">
             <Sparkles className="h-4 w-4 text-lime-200" aria-hidden="true" />
-            Lectura rápida
+            Margen del día
           </div>
-          <p className="mt-2 text-sm font-semibold leading-6 text-teal-50/78">{summary.balance.message}</p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-teal-50/78">{envelope.message}</p>
           <div className="mt-4 grid gap-2">
-            <HeroInsight label="Balance actual" value={formatCurrency(summary.balance.current)} />
-            <HeroInsight label="Ingreso pendiente" value={formatCurrency(summary.income.pending)} />
-            <HeroInsight label="Protegido para pagos" value={formatCurrency(summary.spendingPower.protectedForObligations ?? summary.expenses.fixedPending)} />
-            <HeroInsight label="Tarjetas" value={formatCurrency(summary.spendingPower.protectedForCreditCards ?? 0)} />
-            <HeroInsight label="Metas" value={formatCurrency(summary.spendingPower.protectedForSavings ?? 0)} />
+            <HeroInsight label="Margen inicial" value={formatCurrency(envelope.startingDailyAllowance)} />
+            <HeroInsight label="Gastado hoy" value={formatCurrency(envelope.spentToday)} />
+            <HeroInsight label={envelope.status === "risk" ? "Exceso de hoy" : "Restante hoy"} value={formatCurrency(envelope.status === "risk" ? envelope.overspentToday : envelope.remainingToday)} />
+            <HeroInsight label="Desde mañana" value={`${formatCurrency(envelope.nextDailyAllowance)} / día`} />
           </div>
         </div>
       </div>
@@ -95,6 +104,42 @@ export function FinancialStatusHero({ summary }: FinancialStatusHeroProps) {
 }
 
 function getHeroCopy(summary: DashboardSummary) {
+  const envelope = getEnvelopeView(summary);
+
+  if (summary.dailyEnvelope) {
+    if (summary.dailyEnvelope.spentToday === 0) {
+      return {
+        title: "Tu margen diario está completo.",
+        description: `Si mantienes este ritmo, cerrarás el periodo con ${formatCurrency(summary.balance.projectedEndOfMonth)}.`,
+      };
+    }
+
+    if (envelope.status === "risk") {
+      return {
+        title: `Tu margen diario desde mañana será de ${formatCurrency(envelope.nextDailyAllowance)}.`,
+        description: "Cada gasto extra de hoy reduce tu margen de los próximos días.",
+      };
+    }
+
+    if (envelope.status === "warning") {
+      return {
+        title: "Si no gastas más hoy, mantienes estable tu proyección.",
+      };
+    }
+
+    if (summary.dailyEnvelope.nextDaysDailyAllowanceDelta < 0) {
+      return {
+        title: `Has usado ${formatCurrency(envelope.spentToday)} de tu margen diario de ${formatCurrency(envelope.startingDailyAllowance)}.`,
+        description: `Desde mañana tu margen será de ${formatCurrency(envelope.nextDailyAllowance)} por día.`,
+      };
+    }
+
+    return {
+      title: `Has usado ${formatCurrency(envelope.spentToday)} de tu margen diario de ${formatCurrency(envelope.startingDailyAllowance)}.`,
+      description: "Tu ritmo diario se mantiene estable.",
+    };
+  }
+
   const hasProtectedObligations = (summary.spendingPower.protectedForObligations ?? 0) > 0;
 
   if (summary.balance.status === "risk") {
@@ -118,6 +163,78 @@ function getHeroCopy(summary: DashboardSummary) {
     description: hasProtectedObligations
       ? `Tu proyección protege ${formatCurrency(summary.spendingPower.protectedForObligations ?? 0)} y aún estima cerrar con ${formatCurrency(summary.balance.projectedEndOfMonth)}.`
       : `Si mantienes este ritmo, cerrarás el mes con ${formatCurrency(summary.balance.projectedEndOfMonth)} disponibles.`,
+  };
+}
+
+function getEnvelopeView(summary: DashboardSummary) {
+  const dailyEnvelope = summary.dailyEnvelope;
+
+  if (!dailyEnvelope) {
+    return {
+      eyebrow: "Hoy puedes gastar",
+      message: summary.balance.message,
+      nextDailyAllowance: summary.spendingPower.safeToSpendToday,
+      overspentToday: 0,
+      primaryAmount: summary.spendingPower.safeToSpendToday,
+      remainingToday: summary.spendingPower.safeToSpendToday,
+      spentToday: 0,
+      startingDailyAllowance: summary.spendingPower.safeToSpendToday,
+      status: "healthy" as const,
+    };
+  }
+
+  if (dailyEnvelope.overspentToday > 0) {
+    return {
+      eyebrow: "Te pasaste hoy por",
+      message: `Te pasaste por ${formatCurrency(dailyEnvelope.overspentToday)} hoy.`,
+      nextDailyAllowance: dailyEnvelope.nextDaysDailyAllowanceAfterTodaySpending,
+      overspentToday: dailyEnvelope.overspentToday,
+      primaryAmount: dailyEnvelope.overspentToday,
+      remainingToday: dailyEnvelope.remainingToday,
+      spentToday: dailyEnvelope.spentToday,
+      startingDailyAllowance: dailyEnvelope.startingDailyAllowance,
+      status: "risk" as const,
+    };
+  }
+
+  if (dailyEnvelope.spentToday === 0) {
+    return {
+      eyebrow: "Hoy puedes gastar",
+      message: "Tu margen está completo para hoy.",
+      nextDailyAllowance: dailyEnvelope.nextDaysDailyAllowanceAfterTodaySpending,
+      overspentToday: dailyEnvelope.overspentToday,
+      primaryAmount: dailyEnvelope.startingDailyAllowance,
+      remainingToday: dailyEnvelope.remainingToday,
+      spentToday: dailyEnvelope.spentToday,
+      startingDailyAllowance: dailyEnvelope.startingDailyAllowance,
+      status: "healthy" as const,
+    };
+  }
+
+  if (dailyEnvelope.remainingToday === 0 && dailyEnvelope.startingDailyAllowance > 0) {
+    return {
+      eyebrow: "Ya usaste tu margen de hoy",
+      message: "Ya usaste tu margen de hoy.",
+      nextDailyAllowance: dailyEnvelope.nextDaysDailyAllowanceAfterTodaySpending,
+      overspentToday: dailyEnvelope.overspentToday,
+      primaryAmount: 0,
+      remainingToday: dailyEnvelope.remainingToday,
+      spentToday: dailyEnvelope.spentToday,
+      startingDailyAllowance: dailyEnvelope.startingDailyAllowance,
+      status: "warning" as const,
+    };
+  }
+
+  return {
+    eyebrow: "Hoy te quedan",
+    message: `Te quedan ${formatCurrency(dailyEnvelope.remainingToday)} para hoy.`,
+    nextDailyAllowance: dailyEnvelope.nextDaysDailyAllowanceAfterTodaySpending,
+    overspentToday: dailyEnvelope.overspentToday,
+    primaryAmount: dailyEnvelope.remainingToday,
+    remainingToday: dailyEnvelope.remainingToday,
+    spentToday: dailyEnvelope.spentToday,
+    startingDailyAllowance: dailyEnvelope.startingDailyAllowance,
+    status: "healthy" as const,
   };
 }
 

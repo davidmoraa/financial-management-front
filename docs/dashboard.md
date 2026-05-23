@@ -22,9 +22,15 @@ The page handles:
 - missing `nextFixedExpense`
 - reduced-motion users
 
-## safeToSpendToday
+## Daily Envelope
 
-The UI displays `safeToSpendToday` as the amount the user can spend today without leaving the current plan. Negative or non-finite values are rendered as `0` by shared formatters.
+The hero prioritizes `dailyEnvelope` when the backend provides it:
+
+- `remainingToday` is the protagonist while the user is within the daily envelope.
+- `overspentToday` is the protagonist when the user exceeds the daily envelope.
+- `startingDailyAllowance`, `spentToday`, `remainingToday` and `nextDaysDailyAllowanceAfterTodaySpending` are shown as a compact breakdown.
+
+`safeToSpendToday` remains available for compatibility, simulations and period-level projections. If `dailyEnvelope` is temporarily missing, the hero falls back to `safeToSpendToday` without crashing.
 
 ## Recommended Action
 
@@ -53,6 +59,7 @@ npm test
 Relevant tests:
 
 - `src/pages/DashboardPage.test.tsx`
+- `src/components/dashboard/FinancialStatusHero.test.tsx`
 - `src/components/feedback/MovementRegisteredFeedback.test.tsx`
 
 The tests cover loading, error, empty state, healthy state, danger recommended action, missing optional dashboard lists and the three-insight display limit.

@@ -1,20 +1,15 @@
 import { apiClient } from "@/lib/api/client";
-import type { DashboardSummaryResponse } from "@/types/dashboard";
+import type { AnalyticsSummaryResponse } from "@/types/analytics";
 
-export async function fetchDashboardSummary(month?: string) {
-  const params = new URLSearchParams();
+export async function fetchAnalyticsSummary(period: string) {
+  const params = new URLSearchParams({ period });
   const timeZone = getBrowserTimeZone();
-
-  if (month) {
-    params.set("month", month);
-  }
 
   if (timeZone) {
     params.set("timeZone", timeZone);
   }
 
-  const query = params.size > 0 ? `?${params.toString()}` : "";
-  const response = await apiClient.get<DashboardSummaryResponse>(`/v1/dashboard/summary${query}`);
+  const response = await apiClient.get<AnalyticsSummaryResponse>(`/v1/analytics/summary?${params.toString()}`);
   return response.summary;
 }
 
