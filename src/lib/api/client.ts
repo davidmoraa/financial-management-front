@@ -4,23 +4,23 @@ const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
 const API_BASE_URL = resolveApiBaseUrl(
   configuredApiBaseUrl,
-  typeof window !== "undefined" ? window.location.hostname : undefined,
+  import.meta.env.PROD,
 );
 
-export function resolveApiBaseUrl(apiBaseUrl: string | undefined, hostname?: string) {
-  if (apiBaseUrl && !isInvalidProductionApiUrl(apiBaseUrl, hostname)) {
+export function resolveApiBaseUrl(apiBaseUrl: string | undefined, isProduction = false) {
+  if (apiBaseUrl && !isInvalidProductionApiUrl(apiBaseUrl, isProduction)) {
     return apiBaseUrl;
   }
 
-  if (hostname === "moneyflux.cloud") {
-    return "https://api.moneyflux.cloud";
+  if (isProduction) {
+    throw new Error("VITE_API_BASE_URL must be configured with a production API URL");
   }
 
   return "http://localhost:3000";
 }
 
-function isInvalidProductionApiUrl(apiBaseUrl: string, hostname?: string) {
-  if (hostname !== "moneyflux.cloud") {
+function isInvalidProductionApiUrl(apiBaseUrl: string, isProduction: boolean) {
+  if (!isProduction) {
     return false;
   }
 

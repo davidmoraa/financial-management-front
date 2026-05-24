@@ -38,8 +38,8 @@ describe("apiClient", () => {
     window.removeEventListener("financial-management:unauthorized", unauthorizedListener);
   });
 
-  it("no usa localhost como API base en el dominio productivo", () => {
-    expect(resolveApiBaseUrl("http://localhost:3000", "moneyflux.cloud")).toBe("https://api.moneyflux.cloud");
-    expect(resolveApiBaseUrl(undefined, "moneyflux.cloud")).toBe("https://api.moneyflux.cloud");
+  it("rechaza localhost como API base en producción", () => {
+    expect(() => resolveApiBaseUrl("http://localhost:3000", true)).toThrow("VITE_API_BASE_URL");
+    expect(() => resolveApiBaseUrl(undefined, true)).toThrow("VITE_API_BASE_URL");
   });
 });
