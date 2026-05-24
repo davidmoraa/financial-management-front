@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { apiClient, ApiError, AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
+import { apiClient, ApiError, AUTH_TOKEN_STORAGE_KEY, resolveApiBaseUrl } from "@/lib/api/client";
 
 describe("apiClient", () => {
   it("adjunta Authorization Bearer cuando hay sesión", async () => {
@@ -36,5 +36,10 @@ describe("apiClient", () => {
 
     expect(unauthorizedListener).toHaveBeenCalledTimes(1);
     window.removeEventListener("financial-management:unauthorized", unauthorizedListener);
+  });
+
+  it("no usa localhost como API base en el dominio productivo", () => {
+    expect(resolveApiBaseUrl("http://localhost:3000", "moneyflux.cloud")).toBe("https://api.moneyflux.cloud");
+    expect(resolveApiBaseUrl(undefined, "moneyflux.cloud")).toBe("https://api.moneyflux.cloud");
   });
 });

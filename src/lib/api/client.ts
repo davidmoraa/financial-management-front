@@ -1,6 +1,31 @@
 export const AUTH_TOKEN_STORAGE_KEY = "financial_management_auth_token";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+const API_BASE_URL = resolveApiBaseUrl(
+  configuredApiBaseUrl,
+  typeof window !== "undefined" ? window.location.hostname : undefined,
+);
+
+export function resolveApiBaseUrl(apiBaseUrl: string | undefined, hostname?: string) {
+  if (apiBaseUrl && !isInvalidProductionApiUrl(apiBaseUrl, hostname)) {
+    return apiBaseUrl;
+  }
+
+  if (hostname === "moneyflux.cloud") {
+    return "https://api.moneyflux.cloud";
+  }
+
+  return "http://localhost:3000";
+}
+
+function isInvalidProductionApiUrl(apiBaseUrl: string, hostname?: string) {
+  if (hostname !== "moneyflux.cloud") {
+    return false;
+  }
+
+  return apiBaseUrl.includes("localhost") || apiBaseUrl.includes("127.0.0.1");
+}
 
 type RequestOptions = {
   body?: unknown;
