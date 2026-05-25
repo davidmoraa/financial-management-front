@@ -83,6 +83,23 @@ function canFetchRemoteData() {
   return Boolean(window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)) && window.navigator.onLine;
 }
 
+function canAttemptImmediateRemoteWrite() {
+  return canFetchRemoteData();
+}
+
+async function syncImmediatelyIfPossible() {
+  if (!canAttemptImmediateRemoteWrite()) {
+    return;
+  }
+
+  try {
+    const { syncPendingItems } = await import("@/lib/offline/syncEngine");
+    await syncPendingItems();
+  } catch {
+    // The local write and syncQueue item are already persisted. A later sync retry will pick them up.
+  }
+}
+
 export const useTransactionStore = create<TransactionState>((set, get) => ({
   transactions: [],
   monthlyBudget: 0,
@@ -117,6 +134,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   },
   addTransaction: async (values) => {
     const transaction = await createTransaction(toMutationInput(values));
+    await syncImmediatelyIfPossible();
     const [transactions, pendingSyncCount, failedSyncCount] = await Promise.all([
       getAllTransactions(),
       getPendingCount(),
@@ -127,11 +145,13 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   },
   updateTransaction: async (id, values) => {
     const transaction = await updateTransaction(id, toMutationInput(values));
+    await syncImmediatelyIfPossible();
     await get().refreshTransactions();
     return transaction;
   },
   deleteTransaction: async (id) => {
     await softDeleteTransaction(id);
+    await syncImmediatelyIfPossible();
     await get().refreshTransactions();
   },
   getTransactionsByMonth: (date) =>
