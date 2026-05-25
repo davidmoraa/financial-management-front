@@ -8,7 +8,13 @@ type EnqueueSyncItemInput = {
   payload: unknown;
 };
 
-const nowIso = () => new Date().toISOString();
+let lastTimestampMs = 0;
+
+const nowIso = () => {
+  const timestampMs = Math.max(Date.now(), lastTimestampMs + 1);
+  lastTimestampMs = timestampMs;
+  return new Date(timestampMs).toISOString();
+};
 
 export async function getPendingSyncItems() {
   return financeDb.syncQueue

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
+import { defaultCategories } from "@/lib/categories/defaultCategories";
 import { ensureOfflineDatabaseReady, financeDb } from "@/lib/offline/db";
 import { fetchCategories } from "@/services/categoriesApi";
 import type { Category, TransactionType } from "@/types/finance";
@@ -35,7 +36,13 @@ async function loadCategories() {
     }
   }
 
-  return financeDb.categories.orderBy("name").toArray();
+  const cachedCategories = await financeDb.categories.orderBy("name").toArray();
+  if (cachedCategories.length > 0) {
+    return cachedCategories;
+  }
+
+  await financeDb.categories.bulkPut(defaultCategories);
+  return [...defaultCategories].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export const useCategoryStore = create<CategoryState>((set, get) => ({

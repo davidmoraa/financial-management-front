@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { apiClient, AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
+import { apiClient, ApiError, AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
 import { prepareOfflineCacheForUser, setIncomeSettings } from "@/lib/offline/db";
 import { normalizeExpectedMonthlyIncome } from "@/lib/finance/incomeCadence";
 import {
@@ -20,6 +20,17 @@ import {
 import { updateProfile } from "@/services/profileApi";
 import { useTransactionStore } from "@/stores/transactionStore";
 import type { IncomeCadence } from "@/types/finance";
+
+export const AUTH_SESSION_CACHE_STORAGE_KEY = "financial_management_auth_session";
+export const SESSION_VALIDATION_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+type CachedAuthSession = {
+  user: AuthUser | null;
+  profile: AuthProfile | null;
+  linkedProviders: LinkedProvider[];
+  validatedAt: number;
+  cachedAt: number;
+};
 
 type AuthState = {
   token: string | null;
@@ -57,6 +68,93 @@ function storeToken(token: string | null) {
   } else {
     window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   }
+}
+
+function readCachedAuthSession(): CachedAuthSession | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rawSession = window.localStorage.getItem(AUTH_SESSION_CACHE_STORAGE_KEY);
+  if (!rawSession) {
+    return null;
+  }
+
+  try {
+    const session = JSON.parse(rawSession) as CachedAuthSession;
+    if (!session || typeof session.validatedAt !== "number") {
+      return null;
+    }
+
+    return {
+      user: session.user ?? null,
+      profile: session.profile ?? null,
+      linkedProviders: Array.isArray(session.linkedProviders) ? session.linkedProviders : [],
+      validatedAt: session.validatedAt,
+      cachedAt: typeof session.cachedAt === "number" ? session.cachedAt : session.validatedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function storeCachedAuthSession(input: {
+  user: AuthUser | null;
+  profile?: AuthProfile | null;
+  linkedProviders?: LinkedProvider[];
+  validatedAt?: number;
+}) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const now = Date.now();
+  const session: CachedAuthSession = {
+    user: input.user,
+    profile: input.profile ?? null,
+    linkedProviders: input.linkedProviders ?? [],
+    validatedAt: input.validatedAt ?? now,
+    cachedAt: now,
+  };
+
+  window.localStorage.setItem(AUTH_SESSION_CACHE_STORAGE_KEY, JSON.stringify(session));
+}
+
+function clearCachedAuthSession() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(AUTH_SESSION_CACHE_STORAGE_KEY);
+}
+
+function isBrowserOnline() {
+  return typeof navigator === "undefined" ? true : navigator.onLine;
+}
+
+function shouldValidateSession(cachedSession: CachedAuthSession | null) {
+  if (!cachedSession) {
+    return true;
+  }
+
+  return Date.now() - cachedSession.validatedAt >= SESSION_VALIDATION_INTERVAL_MS;
+}
+
+async function applyCachedSession(token: string, cachedSession: CachedAuthSession, set: (state: Partial<AuthState>) => void) {
+  if (cachedSession.user?.id) {
+    await prepareOfflineCacheForUser(cachedSession.user.id);
+  }
+  if (cachedSession.profile) {
+    await syncProfileBudget(cachedSession.profile);
+  }
+  set({
+    token,
+    user: cachedSession.user,
+    profile: cachedSession.profile,
+    linkedProviders: cachedSession.linkedProviders,
+    isAuthenticated: true,
+    isAuthLoading: false,
+  });
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -185,6 +283,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const monthlyBudget = input.monthlyBudget ?? normalizeExpectedMonthlyIncome(input.expectedIncomeAmount, input.incomeCadence);
       const result = await updateProfile({ ...input, monthlyBudget });
       await syncProfileBudget(result.profile);
+      storeCachedAuthSession({
+        user: result.user,
+        profile: result.profile,
+        linkedProviders: result.linkedProviders ?? [],
+      });
       set({
         user: result.user,
         profile: result.profile,
@@ -199,24 +302,53 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   refreshLinkedProviders: async () => {
     const result = await getLinkedAccounts();
+    const state = get();
+    storeCachedAuthSession({
+      user: state.user,
+      profile: state.profile,
+      linkedProviders: result.linkedProviders,
+    });
     set({ linkedProviders: result.linkedProviders });
   },
   logout: () => {
     storeToken(null);
+    clearCachedAuthSession();
     set({ token: null, user: null, profile: null, linkedProviders: [], isAuthenticated: false, isAuthLoading: false });
   },
   loadSession: async () => {
     const token = get().token ?? readStoredToken();
     if (!token) {
+      clearCachedAuthSession();
       set({ token: null, user: null, profile: null, linkedProviders: [], isAuthenticated: false, isAuthLoading: false });
       return;
     }
 
-    set({ token, isAuthLoading: true });
+    const cachedSession = readCachedAuthSession();
+    if (cachedSession) {
+      await applyCachedSession(token, cachedSession, set);
+    } else {
+      set({ token, isAuthenticated: true, isAuthLoading: !isBrowserOnline() });
+    }
+
+    if (!isBrowserOnline()) {
+      set({ token, isAuthenticated: true, isAuthLoading: false });
+      return;
+    }
+
+    if (!shouldValidateSession(cachedSession)) {
+      return;
+    }
+
+    set({ token, isAuthLoading: !cachedSession });
     try {
       const result = await apiClient.get<Omit<AuthResponse, "token">>("/v1/auth/me");
       await prepareOfflineCacheForUser(result.user.id);
       await syncProfileBudget(result.profile);
+      storeCachedAuthSession({
+        user: result.user,
+        profile: result.profile ?? null,
+        linkedProviders: result.linkedProviders ?? [],
+      });
       set({
         token,
         user: result.user,
@@ -225,9 +357,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         isAuthLoading: false,
       });
-    } catch {
-      storeToken(null);
-      set({ token: null, user: null, profile: null, linkedProviders: [], isAuthenticated: false, isAuthLoading: false });
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        storeToken(null);
+        clearCachedAuthSession();
+        set({ token: null, user: null, profile: null, linkedProviders: [], isAuthenticated: false, isAuthLoading: false });
+        return;
+      }
+
+      set({
+        token,
+        isAuthenticated: true,
+        isAuthLoading: false,
+      });
     }
   },
 }));
@@ -257,6 +399,11 @@ async function syncProfileBudget(profile?: AuthProfile | null) {
 }
 
 function setAuthResult(set: (state: Partial<AuthState>) => void, result: AuthResponse) {
+  storeCachedAuthSession({
+    user: result.user,
+    profile: result.profile ?? null,
+    linkedProviders: result.linkedProviders ?? [],
+  });
   set({
     token: result.token,
     user: result.user,
