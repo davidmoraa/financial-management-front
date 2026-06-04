@@ -25,6 +25,7 @@ vi.mock("@/lib/dashboard/localDashboardSummary", () => ({
 }));
 
 import { DashboardPage } from "@/pages/DashboardPage";
+import { useAuthStore } from "@/stores/authStore";
 import type { DashboardSummary } from "@/types/dashboard";
 
 function dashboardSummary(overrides: Partial<DashboardSummary> = {}): DashboardSummary {
@@ -76,6 +77,10 @@ describe("DashboardPage", () => {
     savingMilestonesApiMock.fetchSavingMilestones.mockReset();
     creditCardsApiMock.fetchCreditCardObligations.mockResolvedValue([]);
     savingMilestonesApiMock.fetchSavingMilestones.mockResolvedValue([]);
+    // The auth guard in useDashboardSummary skips the API call when not
+    // authenticated. Pre-authenticate the store so tests represent the normal
+    // flow: a logged-in user viewing their dashboard.
+    useAuthStore.setState({ isAuthenticated: true, isAuthLoading: false, token: "test-token" });
   });
 
   it("muestra loading state mientras carga el summary", () => {

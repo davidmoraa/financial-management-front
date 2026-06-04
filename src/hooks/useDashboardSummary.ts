@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { buildLocalDashboardSummary } from "@/lib/dashboard/localDashboardSummary";
 import { fetchDashboardSummary } from "@/services/dashboardApi";
+import { useAuthStore } from "@/stores/authStore";
 import { useFixedExpenseStore } from "@/stores/fixedExpenseStore";
 import { useTransactionStore } from "@/stores/transactionStore";
 import type { DashboardPeriod, DashboardSummary } from "@/types/dashboard";
@@ -21,6 +22,8 @@ type RemoteDashboardSummaryState = {
 export function useDashboardSummary(month: string, period?: DashboardPeriod) {
   const [state, setState] = useState<DashboardSummaryState>({ isLoading: true });
   const [remoteState, setRemoteState] = useState<RemoteDashboardSummaryState>({ isLoading: true });
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   const transactionVersion = useTransactionStore((store) =>
     store.transactions.map((transaction) => `${transaction.id}:${transaction.updatedAt}:${transaction.deletedAt ?? ""}`).join("|"),
   );
@@ -34,6 +37,18 @@ export function useDashboardSummary(month: string, period?: DashboardPeriod) {
   const expectedMonthlyIncome = useTransactionStore((store) => store.expectedMonthlyIncome);
 
   useEffect(() => {
+    // Wait for auth to settle before hitting the API.
+    // Without this guard the request goes out without an Authorization header
+    // (race condition: loadSession() hasn't finished yet), gets a 401, and the
+    // dashboard shows the red error card even though the user is authenticated.
+    if (!isAuthenticated || isAuthLoading) {
+      setRemoteState((current) => ({
+        ...current,
+        isLoading: isAuthLoading,
+      }));
+      return;
+    }
+
     let cancelled = false;
 
     setRemoteState((current) => ({
@@ -80,7 +95,7 @@ export function useDashboardSummary(month: string, period?: DashboardPeriod) {
     return () => {
       cancelled = true;
     };
-  }, [month]);
+  }, [isAuthenticated, isAuthLoading, month]);
 
   useEffect(() => {
     let cancelled = false;

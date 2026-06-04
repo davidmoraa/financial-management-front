@@ -1,5 +1,6 @@
 import { getLastPulledAt, getOrCreateDeviceId, setLastPulledAt } from "@/lib/offline/db";
 import {
+  clearDoneItems,
   getPendingSyncItems,
   hasPendingSyncForEntity,
   markSyncItemDone,
@@ -42,6 +43,9 @@ export async function syncPendingItems() {
   useTransactionStore.getState().setIsSyncing(true);
   const items = await getPendingSyncItems();
 
+  // Track items resolved by push so the catch block does not re-mark them as failed.
+  const resolvedItemIds = new Set<string>();
+
   try {
     for (const item of items) {
       await markSyncItemProcessing(item.id);
@@ -53,6 +57,7 @@ export async function syncPendingItems() {
       const pushResult = await pushSyncOperations({ deviceId, operations: items });
 
       for (const accepted of pushResult.accepted) {
+        resolvedItemIds.add(accepted.operationId);
         await markSyncItemDone(accepted.operationId);
         const item = items.find((candidate) => candidate.id === accepted.operationId);
         if (item) {
@@ -61,6 +66,7 @@ export async function syncPendingItems() {
       }
 
       for (const failed of pushResult.failed) {
+        resolvedItemIds.add(failed.operationId);
         await markSyncItemFailed(failed.operationId, failed.message);
         const item = items.find((candidate) => candidate.id === failed.operationId);
         if (item) {
@@ -69,6 +75,7 @@ export async function syncPendingItems() {
       }
 
       for (const conflict of pushResult.conflicts) {
+        resolvedItemIds.add(conflict.operationId);
         await markSyncItemFailed(conflict.operationId, "Conflict reported by server");
         const item = items.find((candidate) => candidate.id === conflict.operationId);
         if (item) {
@@ -107,6 +114,8 @@ export async function syncPendingItems() {
     }
 
     await setLastPulledAt(pullResult.serverTime);
+    // Purge resolved items so failedSyncCount drops after a successful full sync.
+    await clearDoneItems();
     await Promise.all([
       useTransactionStore.getState().refreshTransactions(),
       useFixedExpenseStore.getState().refreshAll(),
@@ -114,7 +123,9 @@ export async function syncPendingItems() {
 
     return { processed: items.length };
   } catch (error) {
-    for (const item of items) {
+    // Only mark items that were not already resolved by the push step.
+    const unresolvedItems = items.filter((item) => !resolvedItemIds.has(item.id));
+    for (const item of unresolvedItems) {
       await markEntitySyncStatus(item, "failed");
       await markSyncItemFailed(item.id, error);
     }
@@ -122,7 +133,7 @@ export async function syncPendingItems() {
       useTransactionStore.getState().refreshTransactions(),
       useFixedExpenseStore.getState().refreshAll(),
     ]);
-    return { processed: 0 };
+    return { processed: resolvedItemIds.size };
   } finally {
     isSyncing = false;
     useTransactionStore.getState().setIsSyncing(false);
